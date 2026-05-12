@@ -1,0 +1,31 @@
+export const site = {
+  name: "Patriots in Action",
+  url: "https://patriotsinaction.com",
+  tagline: "Empowering citizens. Preserving Liberty.",
+  description:
+    "A nationwide county-by-county civic network for local events, trusted resources, community updates, and practical action.",
+  contact: {
+    phone: "(866) 756 1776",
+    phoneDial: "+18667561776",
+    textPhone: "806.351.0084",
+    email: "info@patriotsinaction.com",
+  },
+  links: {
+    community: "https://community.patriotsinaction.com/",
+    merch: "https://shop.patriotsinaction.com/",
+    rewards: "https://patriotsinaction.com/partners",
+    partner: "https://patriotsinaction.com/partners",
+    registerToVote: "https://www.vote.gov/register",
+    nationalNews: "https://www.theepochtimes.com/rss",
+    localNewsSearch: "https://news.google.com/search?q=",
+    obituariesSearch: "https://www.legacy.com/search",
+    vimeoShowcaseId: "12047150",
+  },
+  brand: {
+    patriot: "/brand/PIAPatriot.png",
+    footerLogo: "/brand/PIAFooterLogo.png",
+    textLogo: "/brand/PIAFullTextLogoRedWhite.png",
+    icon: "/brand/SocialIcon.png",
+    operationShowUp: "/brand/operation-show-up-cover.png",
+  },
+} as const;

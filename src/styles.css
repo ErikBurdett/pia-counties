@@ -1,0 +1,413 @@
+:root {
+  color-scheme: light;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: #17233f;
+  background: #f7f3ea;
+  --blue: #15386f;
+  --navy: #111b47;
+  --red: #b3212c;
+  --cream: #fffaf0;
+  --border: rgba(21, 56, 111, 0.16);
+  --muted: #667085;
+  --shadow: 0 18px 50px rgba(17, 27, 71, 0.12);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}
+
+a {
+  color: inherit;
+}
+
+img {
+  max-width: 100%;
+}
+
+.container {
+  width: min(1180px, calc(100% - 32px));
+  margin-inline: auto;
+}
+
+.topbar {
+  background: var(--navy);
+  color: white;
+  font-size: 0.86rem;
+}
+
+.topbar-inner,
+.header-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.topbar-inner {
+  padding: 0.5rem 0;
+}
+
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  border-bottom: 1px solid var(--border);
+  background: rgba(255, 250, 240, 0.94);
+  backdrop-filter: blur(12px);
+}
+
+.header-inner {
+  padding: 0.9rem 0;
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.7rem;
+  font-weight: 900;
+  text-decoration: none;
+  letter-spacing: 0.02em;
+}
+
+.brand img {
+  width: 42px;
+  height: 42px;
+  object-fit: contain;
+}
+
+nav {
+  display: flex;
+  gap: 0.9rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+nav a {
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.hero,
+.page-hero,
+.county-hero,
+.section {
+  margin: 3rem 0;
+}
+
+.hero,
+.county-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(220px, 0.8fr);
+  gap: 2rem;
+  align-items: center;
+  padding: 3rem;
+  border: 1px solid var(--border);
+  border-radius: 28px;
+  background:
+    radial-gradient(circle at top right, rgba(179, 33, 44, 0.14), transparent 35%),
+    linear-gradient(135deg, #fff 0%, var(--cream) 100%);
+  box-shadow: var(--shadow);
+}
+
+.hero h1,
+.county-hero h1,
+.page-hero h1 {
+  margin: 0.2rem 0 1rem;
+  font-size: clamp(2.4rem, 8vw, 5.4rem);
+  line-height: 0.95;
+  color: var(--navy);
+  text-transform: uppercase;
+  letter-spacing: -0.05em;
+}
+
+.page-hero {
+  max-width: 820px;
+}
+
+.page-hero p,
+.hero p,
+.county-hero p {
+  font-size: 1.08rem;
+  line-height: 1.7;
+}
+
+.eyebrow {
+  margin: 0 0 0.5rem;
+  color: var(--red);
+  font-size: 0.78rem;
+  font-weight: 900;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+.actions {
+  display: flex;
+  gap: 0.8rem;
+  flex-wrap: wrap;
+  margin-top: 1.4rem;
+}
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
+  padding: 0.7rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: white;
+  color: var(--navy);
+  font-weight: 900;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.button.primary {
+  background: var(--blue);
+  color: white;
+}
+
+.button.red {
+  background: var(--red);
+  color: white;
+}
+
+.button:disabled {
+  opacity: 0.65;
+  cursor: wait;
+}
+
+.section-heading {
+  max-width: 760px;
+  margin-bottom: 1.5rem;
+}
+
+.section h2,
+.panel h2 {
+  margin: 0.2rem 0 0.8rem;
+  color: var(--navy);
+  font-size: clamp(1.7rem, 4vw, 2.6rem);
+  line-height: 1.05;
+}
+
+.card-grid,
+.directory-grid,
+.video-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 1rem;
+}
+
+.card-grid.three {
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+}
+
+.card-grid.four {
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+}
+
+.card,
+.directory-card,
+.resource-card,
+.panel,
+.form-card,
+.video-card {
+  border: 1px solid var(--border);
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.76);
+  box-shadow: 0 12px 36px rgba(17, 27, 71, 0.08);
+}
+
+.card,
+.panel,
+.form-card,
+.video-card {
+  padding: 1.35rem;
+}
+
+.card h3,
+.video-card h2 {
+  margin: 0 0 0.5rem;
+  color: var(--navy);
+}
+
+.directory-card,
+.resource-card {
+  display: flex;
+  min-height: 112px;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 1rem;
+  text-decoration: none;
+  transition: transform 160ms ease, border-color 160ms ease;
+}
+
+.directory-card:hover,
+.resource-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(179, 33, 44, 0.45);
+}
+
+.directory-card strong,
+.resource-card strong {
+  color: var(--navy);
+  font-size: 1.1rem;
+}
+
+.directory-card span,
+.resource-card span,
+.event-card span {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.county-tabs {
+  position: sticky;
+  top: 73px;
+  z-index: 4;
+  margin: 1rem 0;
+  padding: 0.8rem;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: rgba(255, 250, 240, 0.94);
+}
+
+.county-tabs a {
+  padding: 0.55rem 0.75rem;
+  border-radius: 999px;
+}
+
+.county-tabs a.active {
+  background: var(--blue);
+  color: white;
+}
+
+.split {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 0.85fr);
+  gap: 1.2rem;
+  align-items: center;
+}
+
+.top-align {
+  align-items: start;
+}
+
+.narrow {
+  max-width: 760px;
+  margin-inline: auto;
+}
+
+.event-list {
+  display: grid;
+  gap: 0.8rem;
+}
+
+.event-card {
+  display: grid;
+  gap: 0.25rem;
+  padding: 0.9rem;
+  border-radius: 16px;
+  background: #f8fafc;
+}
+
+.video-card iframe {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border: 0;
+  border-radius: 16px;
+  background: var(--navy);
+}
+
+.video-card img {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: 16px;
+  object-fit: cover;
+}
+
+.form-card {
+  display: grid;
+  gap: 1rem;
+}
+
+.field {
+  display: grid;
+  gap: 0.35rem;
+  font-weight: 800;
+}
+
+.field input,
+.field textarea {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 0.8rem 0.9rem;
+  font: inherit;
+  background: white;
+}
+
+.checkbox {
+  display: flex;
+  gap: 0.6rem;
+  align-items: start;
+}
+
+.honeypot {
+  position: absolute;
+  left: -10000px;
+}
+
+.status {
+  padding: 0.85rem 1rem;
+  border-radius: 14px;
+  background: #eef4ff;
+  color: var(--blue);
+  font-weight: 800;
+}
+
+.footer {
+  margin-top: 4rem;
+  padding: 3rem 0;
+  background: var(--navy);
+  color: white;
+}
+
+.footer-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) repeat(2, minmax(180px, 0.5fr));
+  gap: 2rem;
+}
+
+.footer img {
+  width: 190px;
+}
+
+.footer a {
+  display: block;
+  margin: 0.45rem 0;
+  color: white;
+}
+
+@media (max-width: 780px) {
+  .hero,
+  .county-hero,
+  .split,
+  .footer-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .hero,
+  .county-hero {
+    padding: 1.4rem;
+  }
+
+  .county-tabs {
+    position: static;
+  }
+}
