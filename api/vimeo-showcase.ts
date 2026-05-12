@@ -1,6 +1,6 @@
 type VercelRequest = {
   query: {
-    showcase_id?: string | string[];
+    user?: string | string[];
     page?: string | string[];
     per_page?: string | string[];
   };
@@ -12,7 +12,8 @@ type VercelResponse = {
   json: (body: unknown) => void;
 };
 
-const allowedShowcases = new Set(["12047150"]);
+const defaultVimeoUser = "patriotsinactiontv";
+const allowedVimeoUsers = new Set([defaultVimeoUser]);
 
 function first(value?: string | string[]) {
   return Array.isArray(value) ? value[0] : value;
@@ -25,9 +26,9 @@ function numberParam(value: string | undefined, fallback: number, max: number) {
 }
 
 export default async function handler(request: VercelRequest, response: VercelResponse) {
-  const showcaseId = (first(request.query.showcase_id) || "").replace(/\D+/g, "");
-  if (!allowedShowcases.has(showcaseId)) {
-    response.status(403).json({ error: "Showcase is not allowed." });
+  const vimeoUser = (first(request.query.user) || defaultVimeoUser).trim().toLowerCase();
+  if (!allowedVimeoUsers.has(vimeoUser)) {
+    response.status(403).json({ error: "Vimeo user is not allowed." });
     return;
   }
 
@@ -56,7 +57,7 @@ export default async function handler(request: VercelRequest, response: VercelRe
     "total",
   ].join(",");
 
-  const url = new URL(`https://api.vimeo.com/showcases/${showcaseId}/videos`);
+  const url = new URL(`https://api.vimeo.com/users/${vimeoUser}/videos`);
   url.searchParams.set("page", String(page));
   url.searchParams.set("per_page", String(perPage));
   url.searchParams.set("fields", fields);

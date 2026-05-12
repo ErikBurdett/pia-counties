@@ -18,7 +18,6 @@ export const site = {
     registerToVote: "https://www.vote.gov/register",
     nationalNews: "https://www.theepochtimes.com/rss",
     googleNewsRssSearch: "https://news.google.com/rss/search",
-    vimeoShowcaseId: "12047150",
     vimeoTv: "https://vimeo.com/patriotsinactiontv",
   },
   brand: {

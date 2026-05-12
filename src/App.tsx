@@ -1,7 +1,10 @@
 import { useEffect, useState, type FormEvent, type ReactNode, type UIEvent } from "react";
 import { Link, Navigate, NavLink, Route, Routes, useParams } from "react-router-dom";
+import { AdSlot } from "./components/AdSlot";
+import { getCandidatesForCounty, getCandidatesForState, getLocalCandidatesForState, getStatewideCandidates, type Candidate } from "./data/candidates";
 import { counties, getCountiesForState, getCounty, getStateBySlug, states, type CountyPageKey, type CountySite } from "./data/counties";
 import { site } from "./data/site";
+import type { AdRouteType } from "./lib/ads";
 import { fetchCalendarFeed, parseIcsEvents, type CalendarEvent } from "./lib/calendar";
 import { sendCountyFormEmail } from "./lib/email";
 import type { NewsFeedItem } from "./lib/rss-feed";
@@ -10,6 +13,7 @@ const countyPages: { key: CountyPageKey; label: string }[] = [
   { key: "home", label: "Home" },
   { key: "about", label: "About" },
   { key: "elections", label: "Elections & More" },
+  { key: "candidates", label: "Candidates" },
   { key: "news", label: "News & Events" },
   { key: "events", label: "Calendar" },
   { key: "tv", label: "TV" },
@@ -30,6 +34,7 @@ function App() {
       <Route path="/counties" element={<DirectoryPage />} />
       <Route path="/privacy" element={<StaticPage title="Privacy Policy" />} />
       <Route path="/terms" element={<StaticPage title="Terms" />} />
+      <Route path="/:stateSlug/candidates" element={<StateCandidatesPage />} />
       <Route path="/:stateSlug" element={<StatePage />} />
       <Route path="/:stateSlug/:countySlug" element={<CountyRoute page="home" />} />
       <Route path="/:stateSlug/:countySlug/:pageSlug" element={<CountyRoute />} />
@@ -42,7 +47,7 @@ function HomePage() {
   usePageTitle("County Patriot Networks");
 
   return (
-    <Shell>
+    <Shell route="home">
       <section className="hero hero-home">
         <div>
           <p className="eyebrow">Join Our Interactive Community</p>
@@ -76,7 +81,7 @@ function DirectoryPage() {
   usePageTitle("Find Your County");
 
   return (
-    <Shell>
+    <Shell route="directory">
       <PageHero eyebrow="Counties" title="Find your county Patriot Network" subtitle="Choose a state to open local county pages for civic information, calendars, news, TV, partners, and forms." />
       <div className="directory-grid">
         {states.map((state) => (
@@ -94,13 +99,25 @@ function StatePage() {
   const { stateSlug } = useParams();
   const state = getStateBySlug(stateSlug);
   const stateCounties = getCountiesForState(stateSlug);
+  const stateCandidates = getCandidatesForState(stateSlug);
 
   usePageTitle(state ? `${state.name} Counties` : "Not Found");
   if (!state) return <NotFound />;
 
   return (
-    <Shell>
+    <Shell route="state">
       <PageHero eyebrow={state.abbr} title={`${state.name} Patriot Networks`} subtitle="Select a county to open its local Patriots in Action site." />
+      <section className="section split top-align">
+        <div className="panel">
+          <h2>{state.name} candidates</h2>
+          <p>{stateCandidates.length ? `${stateCandidates.length} candidate profiles are available for ${state.name}.` : "Candidate profiles for this state will be added soon."}</p>
+          <Link className="button primary" to={`/${state.slug}/candidates`}>View State Candidates</Link>
+        </div>
+        <div className="panel">
+          <h2>County candidate pages</h2>
+          <p>Each county site can list candidates running locally, including county, city, court, and precinct races.</p>
+        </div>
+      </section>
       <div className="directory-grid">
         {stateCounties.map((county) => (
           <Link key={county.fips} className="directory-card" to={`/${state.slug}/${county.slug}`}>
@@ -109,6 +126,40 @@ function StatePage() {
           </Link>
         ))}
       </div>
+    </Shell>
+  );
+}
+
+function StateCandidatesPage() {
+  const { stateSlug } = useParams();
+  const state = getStateBySlug(stateSlug);
+  const statewideCandidates = getStatewideCandidates(stateSlug);
+  const localCandidates = getLocalCandidatesForState(stateSlug);
+  const allCandidates = getCandidatesForState(stateSlug);
+
+  usePageTitle(state ? `${state.name} Candidates` : "Not Found");
+  if (!state) return <NotFound />;
+
+  return (
+    <Shell route="state">
+      <PageHero eyebrow="Candidate Directory" title={`${state.name} candidates running for office`} subtitle="Browse statewide, district, county, city, and precinct candidates connected to Patriots in Action." />
+      <section className="section">
+        <div className="section-heading">
+          <p className="eyebrow">Statewide Races</p>
+          <h2>{statewideCandidates.length ? `${statewideCandidates.length} statewide candidates` : "Statewide candidates coming soon"}</h2>
+          <p>The source directory includes candidate names and offices, with room to add profile pages and campaign links later.</p>
+        </div>
+        <CandidateGrid candidates={statewideCandidates} emptyText={`No statewide ${state.name} candidates have been added yet.`} />
+      </section>
+      <section className="section">
+        <div className="section-heading">
+          <p className="eyebrow">Local and District Races</p>
+          <h2>{localCandidates.length ? `${localCandidates.length} local and district candidates` : "Local candidates coming soon"}</h2>
+          <p>County pages show county-specific races when a candidate can be matched to a county.</p>
+        </div>
+        <CandidateGrid candidates={localCandidates} emptyText={`No local ${state.name} candidates have been added yet.`} showCounty />
+      </section>
+      {allCandidates.length ? <p className="source-note">Candidate data is modeled after the public Patriots in Action candidates directory.</p> : null}
     </Shell>
   );
 }
@@ -134,13 +185,14 @@ function CountyPage({ county, page }: { county: CountySite; page: CountyPageKey 
   usePageTitle(`${county.displayName}, ${county.state.name}`);
 
   return (
-    <CountyShell county={county}>
+    <CountyShell county={county} page={page}>
       {page === "home" ? <CountyHome county={county} /> : null}
       {page === "about" ? <CountyAbout county={county} /> : null}
       {page === "elections" ? <CountyElections county={county} /> : null}
+      {page === "candidates" ? <CountyCandidates county={county} /> : null}
       {page === "news" ? <CountyNews county={county} /> : null}
       {page === "events" ? <CountyEvents county={county} /> : null}
-      {page === "tv" ? <CountyTv county={county} /> : null}
+      {page === "tv" ? <CountyTv /> : null}
       {page === "partners" ? <CountyPartners county={county} /> : null}
       {page === "contact" ? <CountyContact county={county} /> : null}
       {page === "submit-event" ? <CountySubmitEvent county={county} /> : null}
@@ -164,6 +216,7 @@ function CountyHome({ county }: { county: CountySite }) {
         </div>
         <img src={site.brand.operationShowUp} alt="Operation Show Up cover" />
       </section>
+      <AdSlot county={county} page="home" route="county" slot="county-home-inline" />
       <section className="section split">
         <div>
           <p className="eyebrow">Know Your Leaders. Become Empowered.</p>
@@ -172,7 +225,7 @@ function CountyHome({ county }: { county: CountySite }) {
         </div>
         <EventCalendar county={county} compact />
       </section>
-      <CountyNewsSection county={county} />
+      <CountyNewsSection county={county} page="home" />
       <ActionGrid county={county} />
       <CustomBlocks county={county} page="home" />
     </>
@@ -214,11 +267,36 @@ function CountyElections({ county }: { county: CountySite }) {
   );
 }
 
+function CountyCandidates({ county }: { county: CountySite }) {
+  const countyCandidates = getCandidatesForCounty(county);
+
+  return (
+    <>
+      <PageHero eyebrow="Candidate Directory" title={`${county.displayName} candidates`} subtitle={`Candidates running for local offices connected to ${county.displayName}, ${county.state.name}.`} />
+      <section className="section">
+        <div className="section-heading">
+          <p className="eyebrow">Local Ballot Watch</p>
+          <h2>{countyCandidates.length ? `${countyCandidates.length} local candidates` : "Candidate profiles coming soon"}</h2>
+          <p>Find candidates connected to county, city, court, and precinct races. Statewide candidates are listed in the state directory.</p>
+        </div>
+        <CandidateGrid
+          candidates={countyCandidates}
+          emptyText={`No ${county.displayName} candidate profiles have been added yet.`}
+        />
+        <div className="actions">
+          <Link className="button" to={`/${county.state.slug}/candidates`}>View {county.state.name} Candidates</Link>
+          <a className="button primary" href="https://patriotsinaction.com/candidates/">Open PIA Candidate Directory</a>
+        </div>
+      </section>
+    </>
+  );
+}
+
 function CountyNews({ county }: { county: CountySite }) {
   return (
     <>
       <PageHero eyebrow="News & Events" title="Stay informed" subtitle="Local news, national news, obituaries, interviews, and community updates." />
-      <CountyNewsSection county={county} />
+      <CountyNewsSection county={county} page="news" />
     </>
   );
 }
@@ -239,11 +317,11 @@ function CountyEvents({ county }: { county: CountySite }) {
   );
 }
 
-function CountyTv({ county }: { county: CountySite }) {
+function CountyTv() {
   return (
     <>
-      <PageHero eyebrow="Patriots in Action TV" title="Interviews & updates" subtitle="Videos from the Patriots in Action Vimeo showcase." />
-      <VimeoFeed showcaseId={county.feeds.vimeoShowcaseId} />
+      <PageHero eyebrow="Patriots in Action TV" title="Interviews & updates" subtitle="Videos from the Patriots in Action Vimeo channel." />
+      <VimeoFeed />
     </>
   );
 }
@@ -299,7 +377,7 @@ type RssFeedWidgetProps = {
   emptyText: string;
 };
 
-function CountyNewsSection({ county }: { county: CountySite }) {
+function CountyNewsSection({ county, page }: { county: CountySite; page: CountyPageKey }) {
   return (
     <section className="section news-section">
       <div className="section-heading">
@@ -332,9 +410,10 @@ function CountyNewsSection({ county }: { county: CountySite }) {
             feedUrl={county.feeds.localVideoUrl}
             emptyText="No local video results are available yet."
           />
-          <VimeoFeed showcaseId={county.feeds.vimeoShowcaseId} compact />
+          <VimeoFeed compact />
         </div>
       </div>
+      <AdSlot county={county} page={page} route="county" slot="county-news-inline" />
     </section>
   );
 }
@@ -465,18 +544,18 @@ type VimeoVideo = {
   pictures?: { sizes?: { link: string; width: number }[] };
 };
 
-function VimeoFeed({ showcaseId, compact = false }: { showcaseId: string; compact?: boolean }) {
+function VimeoFeed({ compact = false }: { compact?: boolean }) {
   const [videos, setVideos] = useState<VimeoVideo[]>([]);
   const [status, setStatus] = useState("Loading videos...");
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
-  const perPage = compact ? 4 : 12;
+  const perPage = compact ? 8 : 12;
 
   useEffect(() => {
     let active = true;
 
-    fetch(`/api/vimeo-showcase?showcase_id=${encodeURIComponent(showcaseId)}&page=1&per_page=${perPage}`)
+    fetch(`/api/vimeo-showcase?page=1&per_page=${perPage}`)
       .then((response) => (response.ok ? response.json() : Promise.reject(new Error("Vimeo error"))))
       .then((json: { data?: VimeoVideo[] }) => {
         if (!active) return;
@@ -484,29 +563,29 @@ function VimeoFeed({ showcaseId, compact = false }: { showcaseId: string; compac
         setVideos(nextVideos);
         setPage(1);
         setHasMore(nextVideos.length === perPage);
-        setStatus(nextVideos.length ? "" : "No videos found in this showcase.");
+        setStatus(nextVideos.length ? "" : "No videos found in this Vimeo feed.");
       })
       .catch(() => {
         if (!active) return;
         setVideos([]);
         setPage(1);
         setHasMore(false);
-        setStatus("Could not load the showcase feed. Check the Vimeo proxy token and deployment logs.");
+        setStatus("Could not load the Vimeo feed. Check the Vimeo proxy token and deployment logs.");
       });
 
     return () => {
       active = false;
     };
-  }, [perPage, showcaseId]);
+  }, [perPage]);
 
   async function loadMoreVideos() {
-    if (!compact || loadingMore || !hasMore) return;
+    if (loadingMore || !hasMore) return;
 
     const nextPage = page + 1;
     setLoadingMore(true);
 
     try {
-      const response = await fetch(`/api/vimeo-showcase?showcase_id=${encodeURIComponent(showcaseId)}&page=${nextPage}&per_page=${perPage}`);
+      const response = await fetch(`/api/vimeo-showcase?page=${nextPage}&per_page=${perPage}`);
       if (!response.ok) throw new Error("Vimeo error");
       const json = (await response.json()) as { data?: VimeoVideo[] };
       const nextVideos = sortVideosNewest(json.data || []);
@@ -530,20 +609,27 @@ function VimeoFeed({ showcaseId, compact = false }: { showcaseId: string; compac
         </div>
       ) : null}
       {status ? <p className="status">{status}</p> : null}
-      <div className={compact ? "mini-video-list scroll-feed" : "video-grid"} onScroll={compact ? (event) => handleScrollLoadMore(event, hasMore && !loadingMore, loadMoreVideos) : undefined}>
+      <div className="feed-list video-feed scroll-feed" onScroll={(event) => handleScrollLoadMore(event, hasMore && !loadingMore, loadMoreVideos)}>
         {videos.map((video) => {
-          const thumbnail = video.pictures?.sizes?.at(-1)?.link;
+          const thumbnail = videoThumbnail(video);
           return (
-            <article className="video-card" key={video.uri || video.link || video.name}>
+            <a className={thumbnail ? "feed-item video-feed-item" : "feed-item video-feed-item no-image"} href={video.link || site.links.vimeoTv} key={video.uri || video.link || video.name}>
               {thumbnail ? <img src={thumbnail} alt="" /> : null}
-              <h2>{video.name || "Patriots in Action TV"}</h2>
-              {video.description ? <p>{video.description}</p> : null}
-              {video.link ? <a className="button" href={video.link}>Open on Vimeo</a> : null}
-            </article>
+              <div>
+                <strong>{video.name || "Patriots in Action TV"}</strong>
+                <span>{["Vimeo", formatFeedDate(video.release_time || video.created_time)].filter(Boolean).join(" | ")}</span>
+                {video.description ? <p>{video.description}</p> : null}
+              </div>
+            </a>
           );
         })}
-        {compact && (hasMore || loadingMore) ? <p className="feed-more">{loadingMore ? "Loading more..." : "Scroll for more"}</p> : null}
+        {hasMore || loadingMore ? <p className="feed-more">{loadingMore ? "Loading more..." : "Scroll for more"}</p> : null}
       </div>
+      {!compact && (hasMore || loadingMore) ? (
+        <button className="button primary" type="button" onClick={loadMoreVideos} disabled={loadingMore}>
+          {loadingMore ? "Loading..." : "Load more videos"}
+        </button>
+      ) : null}
       {compact ? <a className="feed-source" href={site.links.vimeoTv}>Open Vimeo channel</a> : null}
     </section>
   );
@@ -557,6 +643,11 @@ function videoTimestamp(video: VimeoVideo) {
   const date = video.release_time || video.created_time;
   const timestamp = date ? new Date(date).getTime() : 0;
   return Number.isNaN(timestamp) ? 0 : timestamp;
+}
+
+function videoThumbnail(video: VimeoVideo) {
+  const sizes = video.pictures?.sizes || [];
+  return [...sizes].sort((first, second) => Math.abs(first.width - 220) - Math.abs(second.width - 220))[0]?.link;
 }
 
 function CountyForm({ county, kind }: { county: CountySite; kind: "contact" | "event" }) {
@@ -633,10 +724,10 @@ function FormInput({ name, label, type = "text", required = false, textarea = fa
   );
 }
 
-function CountyShell({ county, children }: { county: CountySite; children: ReactNode }) {
+function CountyShell({ county, page, children }: { county: CountySite; page: CountyPageKey; children: ReactNode }) {
   const base = `/${county.state.slug}/${county.slug}`;
   return (
-    <Shell county={county}>
+    <Shell county={county} page={page} route="county">
       <nav className="county-tabs" aria-label={`${county.displayName} pages`}>
         {countyPages.map((page) => (
           <NavLink key={page.key} end={page.key === "home"} to={page.key === "home" ? base : `${base}/${page.key}`}>
@@ -645,11 +736,12 @@ function CountyShell({ county, children }: { county: CountySite; children: React
         ))}
       </nav>
       {children}
+      <AdSlot county={county} page={page} route="county" slot="county-page-footer" />
     </Shell>
   );
 }
 
-function Shell({ county, children }: { county?: CountySite; children: ReactNode }) {
+function Shell({ county, children, page, route }: { county?: CountySite; children: ReactNode; page?: CountyPageKey; route: AdRouteType }) {
   return (
     <>
       <header className="topbar">
@@ -669,12 +761,18 @@ function Shell({ county, children }: { county?: CountySite; children: ReactNode 
           <nav>
             <Link to="/counties">Counties</Link>
             <a href={site.links.community}>Community</a>
+            <Link to="/texas/candidates">Candidates</Link>
             <a href={site.links.merch}>Merch</a>
             <Link to="/privacy">Privacy</Link>
           </nav>
         </div>
       </header>
       <main className="container">{children}</main>
+      {route !== "county" ? (
+        <div className="container">
+          <AdSlot county={county} page={page} route={route} slot="site-footer" />
+        </div>
+      ) : null}
       <Footer />
     </>
   );
@@ -748,6 +846,30 @@ function CustomBlocks({ county, page }: { county: CountySite; page: CountyPageKe
   );
 }
 
+function CandidateGrid({ candidates, emptyText, showCounty = false }: { candidates: Candidate[]; emptyText: string; showCounty?: boolean }) {
+  if (!candidates.length) return <p className="status">{emptyText}</p>;
+
+  return (
+    <div className="candidate-grid">
+      {candidates.map((candidate) => (
+        <article className="candidate-card" key={candidate.id}>
+          <p className="eyebrow">{candidateLabel(candidate, showCounty)}</p>
+          <h3>{candidate.name}</h3>
+          <p>{candidate.office}</p>
+          {candidate.profileUrl ? <a className="button" href={candidate.profileUrl}>View Candidate</a> : null}
+        </article>
+      ))}
+    </div>
+  );
+}
+
+function candidateLabel(candidate: Candidate, showCounty: boolean) {
+  if (showCounty && candidate.countyName) return candidate.countyName;
+  if (candidate.scope === "statewide") return "Statewide";
+  if (candidate.district) return candidate.district;
+  return candidate.scope;
+}
+
 function InfoCard({ title, body, href, cta = "Learn more" }: { title: string; body: string; href?: string; cta?: string }) {
   return (
     <article className="card">
@@ -771,7 +893,7 @@ function StaticPage({ title }: { title: string }) {
   usePageTitle(title);
 
   return (
-    <Shell>
+    <Shell route="static">
       <PageHero eyebrow={site.name} title={title} subtitle="This page is a starter policy page for the new Patriots in Action application." />
       <section className="section narrow">
         <p>Use this page for the official {title.toLowerCase()} content before launch.</p>
@@ -784,7 +906,7 @@ function NotFound() {
   usePageTitle("Not Found");
 
   return (
-    <Shell>
+    <Shell route="static">
       <PageHero eyebrow="404" title="Page not found" subtitle="We could not find that Patriots in Action page." />
       <Link className="button primary" to="/counties">Find a County</Link>
     </Shell>

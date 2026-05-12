@@ -11,6 +11,7 @@ export type CountyPageKey =
   | "home"
   | "about"
   | "elections"
+  | "candidates"
   | "news"
   | "events"
   | "tv"
@@ -52,7 +53,6 @@ export type CountySite = {
     localVideoUrl: string;
     nationalNewsUrl: string;
     obituariesUrl: string;
-    vimeoShowcaseId: string;
   };
   links: {
     community: string;
@@ -180,7 +180,6 @@ function createCountySite(county: UsCounty, state: StateSite): CountySite {
       localVideoUrl: videoSearchUrl(county, state),
       nationalNewsUrl: site.links.nationalNews,
       obituariesUrl: obituariesSearchUrl(county, state),
-      vimeoShowcaseId: site.links.vimeoShowcaseId,
     },
     links: {
       community: site.links.community,

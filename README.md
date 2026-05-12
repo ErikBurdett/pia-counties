@@ -34,7 +34,7 @@ The EmailJS template receives `title`, `name`, `email`, `reply_to`, `to_email`, 
 
 County calendar pages use `/api/calendar`, which proxies allowlisted ICS URLs from county data. Potter County has the current community calendar configured.
 
-The TV page uses `/api/vimeo-showcase` for the Patriots in Action Vimeo showcase `12047150`. Set `PIA_VIMEO_ACCESS_TOKEN` or `VIMEO_ACCESS_TOKEN` on the deployment for the proxy.
+The TV page uses `/api/vimeo-showcase` to proxy videos from the Patriots in Action Vimeo user feed. Set `PIA_VIMEO_ACCESS_TOKEN` or `VIMEO_ACCESS_TOKEN` on the deployment for the proxy.
 
 ## Commands
 
