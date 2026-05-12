@@ -60,6 +60,8 @@ export default async function handler(request: VercelRequest, response: VercelRe
   url.searchParams.set("page", String(page));
   url.searchParams.set("per_page", String(perPage));
   url.searchParams.set("fields", fields);
+  url.searchParams.set("sort", "date");
+  url.searchParams.set("direction", "desc");
 
   try {
     const vimeoResponse = await fetch(url, {

@@ -17,9 +17,9 @@ export const site = {
     partner: "https://patriotsinaction.com/partners",
     registerToVote: "https://www.vote.gov/register",
     nationalNews: "https://www.theepochtimes.com/rss",
-    localNewsSearch: "https://news.google.com/search?q=",
-    obituariesSearch: "https://www.legacy.com/search",
+    googleNewsRssSearch: "https://news.google.com/rss/search",
     vimeoShowcaseId: "12047150",
+    vimeoTv: "https://vimeo.com/patriotsinactiontv",
   },
   brand: {
     patriot: "/brand/PIAPatriot.png",

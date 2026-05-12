@@ -49,6 +49,7 @@ export type CountySite = {
   };
   feeds: {
     localNewsUrl: string;
+    localVideoUrl: string;
     nationalNewsUrl: string;
     obituariesUrl: string;
     vimeoShowcaseId: string;
@@ -136,7 +137,24 @@ export function slugify(value: string) {
 }
 
 function newsSearchUrl(county: UsCounty, state: StateSite) {
-  return `${site.links.localNewsSearch}${encodeURIComponent(`${county.name} County ${state.name} local news`)}`;
+  return googleNewsRssUrl(`${county.name} County ${state.name} local news OR ${county.name} ${state.abbr} community news`);
+}
+
+function videoSearchUrl(county: UsCounty, state: StateSite) {
+  return googleNewsRssUrl(`${county.name} County ${state.name} local news video OR ${county.name} ${state.abbr} news video`);
+}
+
+function obituariesSearchUrl(county: UsCounty, state: StateSite) {
+  return googleNewsRssUrl(`${county.name} County ${state.name} obituaries OR ${county.name} ${state.abbr} obituary`);
+}
+
+function googleNewsRssUrl(query: string) {
+  const url = new URL(site.links.googleNewsRssSearch);
+  url.searchParams.set("q", query);
+  url.searchParams.set("hl", "en-US");
+  url.searchParams.set("gl", "US");
+  url.searchParams.set("ceid", "US:en");
+  return url.toString();
 }
 
 function createCountySite(county: UsCounty, state: StateSite): CountySite {
@@ -159,8 +177,9 @@ function createCountySite(county: UsCounty, state: StateSite): CountySite {
     },
     feeds: {
       localNewsUrl: newsSearchUrl(county, state),
+      localVideoUrl: videoSearchUrl(county, state),
       nationalNewsUrl: site.links.nationalNews,
-      obituariesUrl: `${site.links.obituariesSearch}?q=${encodeURIComponent(`${displayName} ${state.name}`)}`,
+      obituariesUrl: obituariesSearchUrl(county, state),
       vimeoShowcaseId: site.links.vimeoShowcaseId,
     },
     links: {

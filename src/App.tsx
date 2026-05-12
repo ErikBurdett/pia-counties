@@ -1,9 +1,10 @@
-import { useEffect, useState, type FormEvent, type ReactNode } from "react";
+import { useEffect, useState, type FormEvent, type ReactNode, type UIEvent } from "react";
 import { Link, Navigate, NavLink, Route, Routes, useParams } from "react-router-dom";
 import { counties, getCountiesForState, getCounty, getStateBySlug, states, type CountyPageKey, type CountySite } from "./data/counties";
 import { site } from "./data/site";
 import { fetchCalendarFeed, parseIcsEvents, type CalendarEvent } from "./lib/calendar";
 import { sendCountyFormEmail } from "./lib/email";
+import type { NewsFeedItem } from "./lib/rss-feed";
 
 const countyPages: { key: CountyPageKey; label: string }[] = [
   { key: "home", label: "Home" },
@@ -171,6 +172,7 @@ function CountyHome({ county }: { county: CountySite }) {
         </div>
         <EventCalendar county={county} compact />
       </section>
+      <CountyNewsSection county={county} />
       <ActionGrid county={county} />
       <CustomBlocks county={county} page="home" />
     </>
@@ -216,21 +218,7 @@ function CountyNews({ county }: { county: CountySite }) {
   return (
     <>
       <PageHero eyebrow="News & Events" title="Stay informed" subtitle="Local news, national news, obituaries, interviews, and community updates." />
-      <section className="section">
-        <div className="card-grid three">
-          <ResourceCard title="Local News Feed" href={county.feeds.localNewsUrl} />
-          <ResourceCard title="National News RSS" href={county.feeds.nationalNewsUrl} />
-          <ResourceCard title="Local Obituaries" href={county.feeds.obituariesUrl} />
-        </div>
-      </section>
-      <section className="section split">
-        <div>
-          <p className="eyebrow">Interviews & Updates</p>
-          <h2>Hear directly from local leaders and change-makers.</h2>
-          <p>Use the TV page for the Patriots in Action Vimeo showcase and featured updates.</p>
-        </div>
-        <Link className="button primary" to={`/${county.state.slug}/${county.slug}/tv`}>Watch Now</Link>
-      </section>
+      <CountyNewsSection county={county} />
     </>
   );
 }
@@ -303,6 +291,119 @@ function CountySubmitEvent({ county }: { county: CountySite }) {
   );
 }
 
+type RssFeedWidgetProps = {
+  title: string;
+  eyebrow: string;
+  description: string;
+  feedUrl: string;
+  emptyText: string;
+};
+
+function CountyNewsSection({ county }: { county: CountySite }) {
+  return (
+    <section className="section news-section">
+      <div className="section-heading">
+        <p className="eyebrow">County Newsroom</p>
+        <h2>Ultra-local feeds for {county.displayName}</h2>
+        <p>Follow local articles, video coverage, obituaries, and Patriots in Action TV from one county news section.</p>
+      </div>
+      <div className="feed-grid">
+        <div className="feed-column">
+          <RssFeedWidget
+            eyebrow="Local Articles"
+            title="County & City News"
+            description={`Online news articles focused on ${county.displayName} and nearby city coverage.`}
+            feedUrl={county.feeds.localNewsUrl}
+            emptyText="No local article results are available yet."
+          />
+          <RssFeedWidget
+            eyebrow="Obituaries"
+            title="Local Obituaries"
+            description={`Recent obituary notices and memorial news for ${county.displayName}.`}
+            feedUrl={county.feeds.obituariesUrl}
+            emptyText="No local obituary results are available yet."
+          />
+        </div>
+        <div className="feed-column">
+          <RssFeedWidget
+            eyebrow="Local Video"
+            title="County News Videos"
+            description={`Video news coverage mentioning ${county.displayName}, local communities, and civic updates.`}
+            feedUrl={county.feeds.localVideoUrl}
+            emptyText="No local video results are available yet."
+          />
+          <VimeoFeed showcaseId={county.feeds.vimeoShowcaseId} compact />
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function RssFeedWidget({ title, eyebrow, description, feedUrl, emptyText }: RssFeedWidgetProps) {
+  const [items, setItems] = useState<NewsFeedItem[]>([]);
+  const [visibleCount, setVisibleCount] = useState(5);
+  const [status, setStatus] = useState("Loading feed...");
+
+  useEffect(() => {
+    let active = true;
+
+    fetch(`/api/rss-feed?url=${encodeURIComponent(feedUrl)}`)
+      .then((response) => (response.ok ? response.json() : Promise.reject(new Error("RSS error"))))
+      .then((json: { items?: NewsFeedItem[] }) => {
+        if (!active) return;
+        const parsed = json.items || [];
+        setItems(parsed);
+        setVisibleCount(5);
+        setStatus(parsed.length ? "" : emptyText);
+      })
+      .catch(() => {
+        if (!active) return;
+        setItems([]);
+        setVisibleCount(5);
+        setStatus("This feed could not be loaded right now.");
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [emptyText, feedUrl]);
+
+  const visibleItems = items.slice(0, visibleCount);
+  const hasMore = visibleCount < items.length;
+
+  return (
+    <article className="feed-widget">
+      <div className="panel-heading">
+        <p className="eyebrow">{eyebrow}</p>
+        <h3>{title}</h3>
+        <p>{description}</p>
+      </div>
+      {status ? <p className="status">{status}</p> : null}
+      <div className="feed-list scroll-feed" onScroll={(event) => handleScrollLoadMore(event, hasMore, () => setVisibleCount((count) => count + 5))}>
+        {visibleItems.map((item) => (
+          <a className={item.imageUrl ? "feed-item" : "feed-item no-image"} href={item.link} key={item.id}>
+            {item.imageUrl ? <img src={item.imageUrl} alt="" /> : null}
+            <div>
+              <strong>{item.title}</strong>
+              <span>{[item.source, formatFeedDate(item.publishedAt)].filter(Boolean).join(" | ")}</span>
+              {item.description ? <p>{item.description}</p> : null}
+            </div>
+          </a>
+        ))}
+        {hasMore ? <p className="feed-more">Scroll for more</p> : null}
+      </div>
+      <a className="feed-source" href={feedUrl}>Open RSS feed</a>
+    </article>
+  );
+}
+
+function handleScrollLoadMore(event: UIEvent<HTMLElement>, hasMore: boolean, loadMore: () => void) {
+  if (!hasMore) return;
+  const element = event.currentTarget;
+  const isNearBottom = element.scrollHeight - element.scrollTop - element.clientHeight < 80;
+  if (isNearBottom) loadMore();
+}
+
 function EventCalendar({ county, compact = false }: { county: CountySite; compact?: boolean }) {
   const feedUrl = county.calendar.proxyUrl || county.calendar.icsUrl;
   const [events, setEvents] = useState<CalendarEvent[]>([]);
@@ -358,46 +459,104 @@ type VimeoVideo = {
   name?: string;
   description?: string;
   link?: string;
+  created_time?: string;
+  release_time?: string;
   player_embed_url?: string;
   pictures?: { sizes?: { link: string; width: number }[] };
 };
 
-function VimeoFeed({ showcaseId }: { showcaseId: string }) {
+function VimeoFeed({ showcaseId, compact = false }: { showcaseId: string; compact?: boolean }) {
   const [videos, setVideos] = useState<VimeoVideo[]>([]);
   const [status, setStatus] = useState("Loading videos...");
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const perPage = compact ? 4 : 12;
 
   useEffect(() => {
-    fetch(`/api/vimeo-showcase?showcase_id=${encodeURIComponent(showcaseId)}&page=1&per_page=12`)
+    let active = true;
+
+    fetch(`/api/vimeo-showcase?showcase_id=${encodeURIComponent(showcaseId)}&page=1&per_page=${perPage}`)
       .then((response) => (response.ok ? response.json() : Promise.reject(new Error("Vimeo error"))))
       .then((json: { data?: VimeoVideo[] }) => {
-        setVideos(json.data || []);
-        setStatus(json.data?.length ? "" : "No videos found in this showcase.");
+        if (!active) return;
+        const nextVideos = sortVideosNewest(json.data || []);
+        setVideos(nextVideos);
+        setPage(1);
+        setHasMore(nextVideos.length === perPage);
+        setStatus(nextVideos.length ? "" : "No videos found in this showcase.");
       })
-      .catch(() => setStatus("Could not load the showcase feed. Check the Vimeo proxy token and deployment logs."));
-  }, [showcaseId]);
+      .catch(() => {
+        if (!active) return;
+        setVideos([]);
+        setPage(1);
+        setHasMore(false);
+        setStatus("Could not load the showcase feed. Check the Vimeo proxy token and deployment logs.");
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [perPage, showcaseId]);
+
+  async function loadMoreVideos() {
+    if (!compact || loadingMore || !hasMore) return;
+
+    const nextPage = page + 1;
+    setLoadingMore(true);
+
+    try {
+      const response = await fetch(`/api/vimeo-showcase?showcase_id=${encodeURIComponent(showcaseId)}&page=${nextPage}&per_page=${perPage}`);
+      if (!response.ok) throw new Error("Vimeo error");
+      const json = (await response.json()) as { data?: VimeoVideo[] };
+      const nextVideos = sortVideosNewest(json.data || []);
+      setVideos((currentVideos) => sortVideosNewest([...currentVideos, ...nextVideos]));
+      setHasMore(nextVideos.length === perPage);
+      setPage(nextPage);
+    } catch {
+      setHasMore(false);
+    } finally {
+      setLoadingMore(false);
+    }
+  }
 
   return (
-    <section className="section">
+    <section className={compact ? "feed-widget" : "section"}>
+      {compact ? (
+        <div className="panel-heading">
+          <p className="eyebrow">Patriots in Action TV</p>
+          <h3>PIA Video Feed</h3>
+          <p>Latest videos from <a href={site.links.vimeoTv}>Patriots in Action TV on Vimeo</a>.</p>
+        </div>
+      ) : null}
       {status ? <p className="status">{status}</p> : null}
-      <div className="video-grid">
+      <div className={compact ? "mini-video-list scroll-feed" : "video-grid"} onScroll={compact ? (event) => handleScrollLoadMore(event, hasMore && !loadingMore, loadMoreVideos) : undefined}>
         {videos.map((video) => {
           const thumbnail = video.pictures?.sizes?.at(-1)?.link;
           return (
             <article className="video-card" key={video.uri || video.link || video.name}>
-              {video.player_embed_url ? (
-                <iframe title={video.name || "Patriots in Action video"} src={video.player_embed_url} allow="autoplay; fullscreen; picture-in-picture" />
-              ) : thumbnail ? (
-                <img src={thumbnail} alt="" />
-              ) : null}
+              {thumbnail ? <img src={thumbnail} alt="" /> : null}
               <h2>{video.name || "Patriots in Action TV"}</h2>
               {video.description ? <p>{video.description}</p> : null}
               {video.link ? <a className="button" href={video.link}>Open on Vimeo</a> : null}
             </article>
           );
         })}
+        {compact && (hasMore || loadingMore) ? <p className="feed-more">{loadingMore ? "Loading more..." : "Scroll for more"}</p> : null}
       </div>
+      {compact ? <a className="feed-source" href={site.links.vimeoTv}>Open Vimeo channel</a> : null}
     </section>
   );
+}
+
+function sortVideosNewest(videos: VimeoVideo[]) {
+  return [...videos].sort((first, second) => videoTimestamp(second) - videoTimestamp(first));
+}
+
+function videoTimestamp(video: VimeoVideo) {
+  const date = video.release_time || video.created_time;
+  const timestamp = date ? new Date(date).getTime() : 0;
+  return Number.isNaN(timestamp) ? 0 : timestamp;
 }
 
 function CountyForm({ county, kind }: { county: CountySite; kind: "contact" | "event" }) {
@@ -646,6 +805,16 @@ function formatTime(event: CalendarEvent) {
   const start = event.start.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
   const end = event.end?.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
   return end ? `${start} - ${end}` : start;
+}
+
+function formatFeedDate(value?: string) {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+  });
 }
 
 export default App;
