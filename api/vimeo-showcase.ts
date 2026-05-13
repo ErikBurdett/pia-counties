@@ -1,4 +1,5 @@
 type VercelRequest = {
+  method?: string;
   query: {
     user?: string | string[];
     page?: string | string[];
@@ -9,11 +10,18 @@ type VercelRequest = {
 type VercelResponse = {
   status: (code: number) => VercelResponse;
   setHeader: (key: string, value: string) => void;
+  send: (body: string) => void;
   json: (body: unknown) => void;
 };
 
 const defaultVimeoUser = "patriotsinactiontv";
 const allowedVimeoUsers = new Set([defaultVimeoUser]);
+
+function setCorsHeaders(response: VercelResponse) {
+  response.setHeader("Access-Control-Allow-Origin", "*");
+  response.setHeader("Access-Control-Allow-Methods", "GET,OPTIONS");
+  response.setHeader("Access-Control-Allow-Headers", "Content-Type");
+}
 
 function first(value?: string | string[]) {
   return Array.isArray(value) ? value[0] : value;
@@ -26,6 +34,13 @@ function numberParam(value: string | undefined, fallback: number, max: number) {
 }
 
 export default async function handler(request: VercelRequest, response: VercelResponse) {
+  setCorsHeaders(response);
+
+  if (request.method === "OPTIONS") {
+    response.status(204).send("");
+    return;
+  }
+
   const vimeoUser = (first(request.query.user) || defaultVimeoUser).trim().toLowerCase();
   if (!allowedVimeoUsers.has(vimeoUser)) {
     response.status(403).json({ error: "Vimeo user is not allowed." });

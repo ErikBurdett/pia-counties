@@ -4,9 +4,11 @@ import { AdSlot } from "./components/AdSlot";
 import { getCandidatesForCounty, getCandidatesForState, type Candidate } from "./data/candidates";
 import { counties, getCountiesForState, getCounty, getStateBySlug, states, type CountyPageKey, type CountySite } from "./data/counties";
 import { site } from "./data/site";
+import { apiUrl } from "./lib/api";
 import type { AdRouteType } from "./lib/ads";
 import { fetchCalendarFeed, parseIcsEvents, type CalendarEvent } from "./lib/calendar";
 import { sendCountyFormEmail } from "./lib/email";
+import { fetchRssFeedItems } from "./lib/rss-client";
 import type { NewsFeedItem } from "./lib/rss-feed";
 
 const countyPages: { key: CountyPageKey; label: string }[] = [
@@ -491,11 +493,9 @@ function RssFeedWidget({ title, eyebrow, description, feedUrl, emptyText }: RssF
   useEffect(() => {
     let active = true;
 
-    fetch(`/api/rss-feed?url=${encodeURIComponent(feedUrl)}`)
-      .then((response) => (response.ok ? response.json() : Promise.reject(new Error("RSS error"))))
-      .then((json: { items?: NewsFeedItem[] }) => {
+    fetchRssFeedItems(feedUrl)
+      .then((parsed) => {
         if (!active) return;
-        const parsed = json.items || [];
         setItems(parsed);
         setVisibleCount(5);
         setStatus(parsed.length ? "" : emptyText);
@@ -549,7 +549,7 @@ function handleScrollLoadMore(event: UIEvent<HTMLElement>, hasMore: boolean, loa
 }
 
 function EventCalendar({ county, compact = false }: { county: CountySite; compact?: boolean }) {
-  const feedUrl = county.calendar.proxyUrl || county.calendar.icsUrl;
+  const feedUrl = county.calendar.proxyUrl ? apiUrl(county.calendar.proxyUrl) : county.calendar.icsUrl;
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [status, setStatus] = useState("Loading community events...");
 
@@ -620,7 +620,7 @@ function VimeoFeed({ compact = false }: { compact?: boolean }) {
   useEffect(() => {
     let active = true;
 
-    fetch(`/api/vimeo-showcase?page=1&per_page=${perPage}`)
+    fetch(apiUrl(`/api/vimeo-showcase?page=1&per_page=${perPage}`))
       .then((response) => (response.ok ? response.json() : Promise.reject(new Error("Vimeo error"))))
       .then((json: { data?: VimeoVideo[] }) => {
         if (!active) return;
@@ -650,7 +650,7 @@ function VimeoFeed({ compact = false }: { compact?: boolean }) {
     setLoadingMore(true);
 
     try {
-      const response = await fetch(`/api/vimeo-showcase?page=${nextPage}&per_page=${perPage}`);
+      const response = await fetch(apiUrl(`/api/vimeo-showcase?page=${nextPage}&per_page=${perPage}`));
       if (!response.ok) throw new Error("Vimeo error");
       const json = (await response.json()) as { data?: VimeoVideo[] };
       const nextVideos = sortVideosNewest(json.data || []);

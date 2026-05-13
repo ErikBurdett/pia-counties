@@ -32,9 +32,25 @@ The EmailJS template receives `title`, `name`, `email`, `reply_to`, `to_email`, 
 
 ## Feeds
 
+County news widgets fetch Google News RSS on demand from the browser through public RSS/CORS providers. This keeps Amplify builds fast because the app only loads feeds for the county page a visitor opens instead of generating nationwide feed files during deployment.
+
+The app tries RSS2JSON first and falls back to AllOrigins raw RSS if RSS2JSON is unavailable. Optional frontend environment variables:
+
+- `VITE_RSS_PROVIDER_URL` overrides the provider endpoint. It must accept `rss_url` and return RSS2JSON-compatible JSON.
+- `VITE_RSS2JSON_API_KEY` adds an RSS2JSON API key.
+- `VITE_RSS_RAW_PROXY_URL` overrides the fallback raw RSS proxy. It must accept `url` and return RSS XML with browser CORS headers.
+- `VITE_RSS_CACHE_TTL_MINUTES` controls browser cache freshness. The default is 60 minutes.
+
 County calendar pages use `/api/calendar`, which proxies allowlisted ICS URLs from county data. Potter County has the current community calendar configured.
 
 The TV page uses `/api/vimeo-showcase` to proxy videos from the Patriots in Action Vimeo user feed. Set `PIA_VIMEO_ACCESS_TOKEN` or `VIMEO_ACCESS_TOKEN` on the deployment for the proxy.
+
+The files in `api/` are Vercel-style serverless functions. A plain AWS Amplify static hosting deployment will not serve those routes, so `/api/calendar` and `/api/vimeo-showcase` return 404 unless you also deploy an API backend. For Amplify hosting, either:
+
+- deploy the `api/` functions to a serverless host and set `VITE_API_BASE_URL` in Amplify to that backend origin, for example `https://your-api.example.com`
+- or create equivalent AWS Lambda/API Gateway routes and set `VITE_API_BASE_URL` to that API Gateway/custom domain
+
+When `VITE_API_BASE_URL` is empty, the app uses same-origin `/api/...` routes for local development and Vercel-style deployments.
 
 ## Commands
 

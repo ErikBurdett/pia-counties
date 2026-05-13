@@ -1,6 +1,7 @@
 import { buildNewsFeedItems } from "../src/lib/rss-feed";
 
 type VercelRequest = {
+  method?: string;
   query: {
     url?: string | string[];
   };
@@ -14,6 +15,12 @@ type VercelResponse = {
 };
 
 const allowedFeedHosts = new Set(["news.google.com"]);
+
+function setCorsHeaders(response: VercelResponse) {
+  response.setHeader("Access-Control-Allow-Origin", "*");
+  response.setHeader("Access-Control-Allow-Methods", "GET,OPTIONS");
+  response.setHeader("Access-Control-Allow-Headers", "Content-Type");
+}
 
 function first(value?: string | string[]) {
   return Array.isArray(value) ? value[0] : value;
@@ -32,6 +39,13 @@ function normalizeRssFeedUrl(value: string | undefined) {
 }
 
 export default async function handler(request: VercelRequest, response: VercelResponse) {
+  setCorsHeaders(response);
+
+  if (request.method === "OPTIONS") {
+    response.status(204).send("");
+    return;
+  }
+
   const feedUrl = normalizeRssFeedUrl(first(request.query.url));
 
   if (!feedUrl) {

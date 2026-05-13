@@ -172,9 +172,7 @@ function createCountySite(county: UsCounty, state: StateSite): CountySite {
     heroSubtitle: "Making our founders proud.",
     intro:
       "Your voice matters locally and nationally. Knowing who represents you helps you stay informed, engaged, and ready to make a difference for your community and country.",
-    calendar: {
-      proxyUrl: `/api/calendar?state=${state.slug}&county=${slug}`,
-    },
+    calendar: {},
     feeds: {
       localNewsUrl: newsSearchUrl(county, state),
       localVideoUrl: videoSearchUrl(county, state),

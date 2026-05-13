@@ -1,5 +1,6 @@
 node_modules
 dist
+public/feeds/
 *.local
 .env
 .env.*
