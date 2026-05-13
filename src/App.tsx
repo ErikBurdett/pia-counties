@@ -1,7 +1,7 @@
 import { useEffect, useState, type FormEvent, type ReactNode, type UIEvent } from "react";
-import { Link, Navigate, NavLink, Route, Routes, useParams } from "react-router-dom";
+import { Link, Navigate, NavLink, Route, Routes, useNavigate, useParams } from "react-router-dom";
 import { AdSlot } from "./components/AdSlot";
-import { getCandidatesForCounty, getCandidatesForState, type Candidate } from "./data/candidates";
+import { getCandidateById, getCandidatesForCounty, getCandidatesForState, type Candidate } from "./data/candidates";
 import { counties, getCountiesForState, getCounty, getStateBySlug, states, type CountyPageKey, type CountySite } from "./data/counties";
 import { site } from "./data/site";
 import { apiUrl } from "./lib/api";
@@ -28,6 +28,10 @@ const candidateProjectDisclaimer =
   "Contributions to Patriots for Action PAC are used to fund voter education, candidate interviews, and election outreach across Texas. Contributions are not tax-deductible. Not authorized by any candidate or candidate's committee.";
 const candidateProjectCandidateIds = new Set(["mayes-middleton", "jim-wright", "thomas-smith"]);
 
+function candidateProfilePath(candidate: Candidate) {
+  return `/candidates/${candidate.id}`;
+}
+
 function usePageTitle(title: string) {
   useEffect(() => {
     document.title = `${title} | ${site.name}`;
@@ -42,6 +46,7 @@ function App() {
       <Route path="/tv" element={<MainTvPage />} />
       <Route path="/privacy" element={<StaticPage title="Privacy Policy" />} />
       <Route path="/terms" element={<StaticPage title="Terms" />} />
+      <Route path="/candidates/:candidateId" element={<CandidateProfilePage />} />
       <Route path="/:stateSlug/candidates" element={<StateCandidatesPage />} />
       <Route path="/:stateSlug" element={<StatePage />} />
       <Route path="/:stateSlug/:countySlug" element={<CountyRoute page="home" />} />
@@ -203,8 +208,8 @@ function StateCandidatesPage() {
       {patriotMessagingCandidates.length && !hasJurisdictionFilter ? (
         <section className="section">
           <div className="section-heading">
-            <p className="eyebrow">Patriot Messaging</p>
-            <h2>Help these candidates reach Texas voters</h2>
+            <p className="eyebrow">Run Off Races</p>
+            <h2>Help these candidates reach Texas voters in Their Run Off Races</h2>
             <p>Support voter education, candidate interviews, and election outreach across Texas through Patriots for Action PAC.</p>
           </div>
           <CandidateGrid candidates={patriotMessagingCandidates} emptyText="No Patriot Messaging candidates are available yet." />
@@ -227,6 +232,29 @@ function StateCandidatesPage() {
         <CandidateGrid candidates={remainingStatewideCandidates} emptyText={`No statewide ${state.name} candidates have been added yet.`} />
       </section>
       {allCandidates.length ? <p className="source-note">Candidate data is modeled after the public Patriots in Action candidates directory.</p> : null}
+    </Shell>
+  );
+}
+
+function CandidateProfilePage() {
+  const { candidateId } = useParams();
+  const candidate = getCandidateById(candidateId);
+  const state = getStateBySlug(candidate?.stateSlug);
+
+  usePageTitle(candidate ? `${candidate.name} Candidate Profile` : "Candidate Not Found");
+  if (!candidate) return <NotFound />;
+
+  const backPath = candidate.countySlug && candidate.stateSlug
+    ? `/${candidate.stateSlug}/${candidate.countySlug}/candidates`
+    : state
+      ? `/${state.slug}/candidates`
+      : "/counties";
+
+  return (
+    <Shell route="static">
+      <section className="section">
+        <CandidateProfile candidate={candidate} backPath={backPath} />
+      </section>
     </Shell>
   );
 }
@@ -1035,40 +1063,59 @@ function candidateScopeLabel(scope: string) {
 }
 
 function CandidateGrid({ candidates, emptyText, showCounty = false }: { candidates: Candidate[]; emptyText: string; showCounty?: boolean }) {
-  const [activeVideo, setActiveVideo] = useState<Candidate | null>(null);
+  const navigate = useNavigate();
 
   if (!candidates.length) return <p className="status">{emptyText}</p>;
 
   return (
-    <>
-      <div className="candidate-grid">
-        {candidates.map((candidate) => (
-          <article className="candidate-card" key={candidate.id}>
-            {candidate.image ? <img className="candidate-photo" src={candidate.image} alt={candidate.name} /> : null}
-            <div className="candidate-card-heading">
-              <p className="eyebrow">{candidateLabel(candidate, showCounty)}</p>
-              <h3>{candidate.name}</h3>
-              <p>For {candidate.office}</p>
+    <div className="candidate-grid">
+      {candidates.map((candidate) => (
+        <article
+          className="candidate-card candidate-card-clickable"
+          key={candidate.id}
+          role="link"
+          tabIndex={0}
+          onClick={(event) => {
+            if (isInteractiveTarget(event.target)) return;
+            navigate(candidateProfilePath(candidate));
+          }}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") navigate(candidateProfilePath(candidate));
+          }}
+        >
+          {candidate.image ? <img className="candidate-photo" src={candidate.image} alt={candidate.name} /> : null}
+          <div className="candidate-card-heading">
+            <p className="eyebrow">{candidateLabel(candidate, showCounty)}</p>
+            <h3>{candidate.name}</h3>
+            <p>For {candidate.office}</p>
+          </div>
+          {candidate.videoEmbedUrl ? <CandidateVideoPreview candidate={candidate} /> : null}
+          <CandidateDetails candidate={candidate} />
+          <div className="actions candidate-card-actions">
+            <Link className="button primary" to={candidateProfilePath(candidate)}>View Profile</Link>
+            <ShareCandidateProfileButton candidate={candidate} />
+          </div>
+          {candidateProjectCandidateIds.has(candidate.id) ? (
+            <div className="candidate-support">
+              <a className="button red" href={candidateProjectUrl}>Help Get This Candidate&apos;s Message Out to Texas Voters</a>
+              <p>{candidateProjectDisclaimer}</p>
             </div>
-            {candidate.videoEmbedUrl ? <CandidateVideoPreview candidate={candidate} onOpen={() => setActiveVideo(candidate)} /> : null}
-            <CandidateDetails candidate={candidate} />
-            {candidateProjectCandidateIds.has(candidate.id) ? (
-              <div className="candidate-support">
-                <a className="button red" href={candidateProjectUrl}>Help Get This Candidate&apos;s Message Out to Texas Voters</a>
-                <p>{candidateProjectDisclaimer}</p>
-              </div>
-            ) : null}
-          </article>
-        ))}
-      </div>
-      {activeVideo ? <CandidateVideoModal candidate={activeVideo} onClose={() => setActiveVideo(null)} /> : null}
-    </>
+          ) : null}
+        </article>
+      ))}
+    </div>
   );
 }
 
-function CandidateVideoPreview({ candidate, onOpen }: { candidate: Candidate; onOpen: () => void }) {
+function isInteractiveTarget(target: EventTarget | null) {
+  return target instanceof Element && Boolean(target.closest("a, button, input, select, textarea, iframe"));
+}
+
+function CandidateVideoPreview({ candidate }: { candidate: Candidate }) {
+  const navigate = useNavigate();
+
   return (
-    <button className="candidate-video-preview" type="button" onClick={onOpen}>
+    <button className="candidate-video-preview" type="button" onClick={() => navigate(candidateProfilePath(candidate))}>
       <iframe
         allow="autoplay; fullscreen; picture-in-picture"
         src={candidate.videoEmbedUrl}
@@ -1079,55 +1126,110 @@ function CandidateVideoPreview({ candidate, onOpen }: { candidate: Candidate; on
   );
 }
 
-function CandidateVideoModal({ candidate, onClose }: { candidate: Candidate; onClose: () => void }) {
-  useEffect(() => {
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") onClose();
-    }
-
-    document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [onClose]);
-
+function CandidateProfile({ candidate, backPath }: { candidate: Candidate; backPath: string }) {
   return (
-    <div className="video-modal" role="dialog" aria-modal="true" aria-label={`${candidate.name} video`}>
-      <button className="video-modal-backdrop" type="button" aria-label="Close video" onClick={onClose} />
-      <div className="video-modal-panel">
-        <div className="video-modal-header">
-          <div>
-            <p className="eyebrow">PIA TV Candidate Interview</p>
-            <h2>{candidate.name}</h2>
-          </div>
-          <button className="button" type="button" onClick={onClose}>Close</button>
+    <article className="candidate-profile">
+      <div className="candidate-profile-header">
+        <div>
+          <p className="eyebrow">Candidate Profile</p>
+          <h1>{candidate.name}</h1>
+          <p>For {candidate.office}</p>
         </div>
-        <iframe
-          allow="autoplay; fullscreen; picture-in-picture"
-          allowFullScreen
-          src={candidate.videoEmbedUrl}
-          title={candidate.videoTitle || `${candidate.name} video`}
-        />
+        <div className="actions">
+          <Link className="button" to={backPath}>Back to Candidates</Link>
+          <ShareCandidateProfileButton candidate={candidate} />
+        </div>
       </div>
-    </div>
+      <div className="candidate-profile-grid">
+        <div className="candidate-profile-main">
+          {candidate.videoEmbedUrl ? (
+            <iframe
+              allow="autoplay; fullscreen; picture-in-picture"
+              allowFullScreen
+              src={candidate.videoEmbedUrl}
+              title={candidate.videoTitle || `${candidate.name} video`}
+            />
+          ) : candidate.image ? (
+            <img src={candidate.image} alt={candidate.name} />
+          ) : (
+            <div className="candidate-profile-empty-video">No candidate video has been added yet.</div>
+          )}
+        </div>
+        <aside className="candidate-profile-sidebar">
+          {candidate.image ? <img className="candidate-profile-photo" src={candidate.image} alt={candidate.name} /> : null}
+          <CandidateDetails candidate={candidate} showProfileLink />
+          {candidateProjectCandidateIds.has(candidate.id) ? (
+            <div className="candidate-support">
+              <a className="button red" href={candidateProjectUrl}>Help Get This Candidate&apos;s Message Out to Texas Voters</a>
+              <p>{candidateProjectDisclaimer}</p>
+            </div>
+          ) : null}
+        </aside>
+      </div>
+    </article>
   );
 }
 
-function CandidateDetails({ candidate }: { candidate: Candidate }) {
-  const rows = [
+function ShareCandidateProfileButton({ candidate }: { candidate: Candidate }) {
+  const [status, setStatus] = useState("");
+  const path = candidateProfilePath(candidate);
+
+  async function handleShare() {
+    const url = new URL(path, window.location.origin).toString();
+    const title = `${candidate.name} Candidate Profile`;
+
+    try {
+      if (navigator.share) {
+        await navigator.share({ title, text: `View ${candidate.name}'s candidate profile.`, url });
+        return;
+      }
+
+      await navigator.clipboard.writeText(url);
+      setStatus("Copied");
+      window.setTimeout(() => setStatus(""), 1800);
+    } catch {
+      setStatus("");
+    }
+  }
+
+  return (
+    <button className="button" type="button" onClick={handleShare}>
+      {status || "Share Candidate Profile"}
+    </button>
+  );
+}
+
+type CandidateDetailRow = {
+  label: string;
+  value?: string;
+  href?: string;
+  linkText?: string;
+};
+
+function CandidateDetails({ candidate, showProfileLink = false }: { candidate: Candidate; showProfileLink?: boolean }) {
+  const rows: CandidateDetailRow[] = [];
+
+  rows.push(
     { label: "Running For", value: candidate.office },
+    { label: "Jurisdiction", value: candidateJurisdiction(candidate) },
     { label: "Party", value: candidate.party },
     { label: "Ballotpedia Profile", value: candidate.ballotpediaUrl, linkText: candidate.name },
     { label: "Email", value: candidate.email, href: candidate.email ? `mailto:${candidate.email}` : undefined },
     { label: "Phone", value: candidate.phone, href: candidate.phone ? `tel:${candidate.phone.replace(/\D+/g, "")}` : undefined },
     { label: "Website", value: candidate.websiteUrl, linkText: "Website" },
-  ].filter((row) => row.value);
+  );
+
+  if (showProfileLink) rows.splice(3, 0, { label: "Profile Link", value: candidateProfilePath(candidate), linkText: "Direct profile" });
+
+  const visibleRows = rows.filter((row): row is CandidateDetailRow & { value: string } => Boolean(row.value));
 
   return (
     <dl className="candidate-details">
-      {rows.map((row) => (
+      {visibleRows.map((row) => (
         <div key={row.label}>
           <dt>{row.label}</dt>
           <dd>
-            {row.href || row.value?.startsWith("http") ? (
+            {row.href || row.value?.startsWith("http") || row.value?.startsWith("/") ? (
               <a href={row.href || row.value}>{row.linkText || row.value}</a>
             ) : (
               row.value

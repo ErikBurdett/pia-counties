@@ -22,7 +22,7 @@ export function AdSlot({ slot, route, county, page, limit = 1, placement }: AdSl
   if (!resolvedAds.length) return null;
 
   return (
-    <aside className={`ad-slot ad-slot-${slot}`} aria-label="Sponsored message">
+    <aside className={`sponsor-slot sponsor-slot-${slot}`} aria-label="Sponsored message">
       {resolvedAds.map((ad) => (
         <AdCard ad={ad} county={county} key={ad.id} page={page} placement={placement || ad.placement} slot={slot} />
       ))}
@@ -66,17 +66,17 @@ function AdCard({ ad, county, page, placement, slot }: { ad: AdCreative; county?
   }, [trackingPayload]);
 
   return (
-    <a className={`ad-card ad-card-${placement} ad-card-${ad.display}`} href={ad.href} onClick={() => trackAdClick(trackingPayload)} ref={cardRef}>
+    <a className={`sponsor-card sponsor-card-${placement} sponsor-card-${ad.display}`} href={ad.href} onClick={() => trackAdClick(trackingPayload)} ref={cardRef}>
       <picture>
         {ad.image.mobile ? <source media="(max-width: 780px)" srcSet={ad.image.mobile} /> : null}
         <img src={ad.image.desktop} alt={ad.image.alt} />
       </picture>
       {ad.display === "card" ? (
-        <span className="ad-card-content">
-          <span className="ad-label">Sponsored by {ad.sponsor}</span>
+        <span className="sponsor-card-content">
+          <span className="sponsor-label">Sponsored by {ad.sponsor}</span>
           <strong>{ad.title}</strong>
           <span>{ad.body}</span>
-          <span className="ad-cta">{ad.cta}</span>
+          <span className="sponsor-cta">{ad.cta}</span>
         </span>
       ) : null}
     </a>

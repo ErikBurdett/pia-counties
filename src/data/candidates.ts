@@ -779,6 +779,11 @@ export function getCandidatesForCounty(county: CountySite) {
   );
 }
 
+export function getCandidateById(candidateId?: string) {
+  if (!candidateId) return undefined;
+  return candidates.find((candidate) => candidate.id === candidateId.toLowerCase());
+}
+
 export function getStatewideCandidates(stateSlug?: string) {
   return getCandidatesForState(stateSlug).filter((candidate) => candidate.scope === "statewide");
 }
