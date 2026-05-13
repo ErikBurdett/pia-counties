@@ -1,5 +1,6 @@
 import emailjs from "@emailjs/browser";
 import type { CountySite } from "../data/counties";
+import { site } from "../data/site";
 
 type FormValue = string | boolean | undefined;
 
@@ -47,7 +48,7 @@ export async function sendCountyFormEmail(params: {
       name: fromName,
       email: fromEmail,
       reply_to: fromEmail,
-      to_email: params.county.email,
+      to_email: site.contact.email,
       county_name: params.county.displayName,
       county_slug: params.county.slug,
       state_name: params.county.state.name,

@@ -1,7 +1,7 @@
 import { useEffect, useState, type FormEvent, type ReactNode, type UIEvent } from "react";
 import { Link, Navigate, NavLink, Route, Routes, useParams } from "react-router-dom";
 import { AdSlot } from "./components/AdSlot";
-import { getCandidatesForCounty, getCandidatesForState, getLocalCandidatesForState, getStatewideCandidates, type Candidate } from "./data/candidates";
+import { getCandidatesForCounty, getCandidatesForState, type Candidate } from "./data/candidates";
 import { counties, getCountiesForState, getCounty, getStateBySlug, states, type CountyPageKey, type CountySite } from "./data/counties";
 import { site } from "./data/site";
 import type { AdRouteType } from "./lib/ads";
@@ -21,6 +21,11 @@ const countyPages: { key: CountyPageKey; label: string }[] = [
   { key: "contact", label: "Contact" },
 ];
 
+const candidateProjectUrl = "https://secure.anedot.com/patriots-for-action/donate";
+const candidateProjectDisclaimer =
+  "Contributions to Patriots for Action PAC are used to fund voter education, candidate interviews, and election outreach across Texas. Contributions are not tax-deductible. Not authorized by any candidate or candidate's committee.";
+const candidateProjectCandidateIds = new Set(["mayes-middleton", "jim-wright", "thomas-smith"]);
+
 function usePageTitle(title: string) {
   useEffect(() => {
     document.title = `${title} | ${site.name}`;
@@ -32,6 +37,7 @@ function App() {
     <Routes>
       <Route path="/" element={<HomePage />} />
       <Route path="/counties" element={<DirectoryPage />} />
+      <Route path="/tv" element={<MainTvPage />} />
       <Route path="/privacy" element={<StaticPage title="Privacy Policy" />} />
       <Route path="/terms" element={<StaticPage title="Terms" />} />
       <Route path="/:stateSlug/candidates" element={<StateCandidatesPage />} />
@@ -73,6 +79,25 @@ function HomePage() {
           <InfoCard title="Feeds and forms" body="Calendar ICS, news links, Vimeo TV, contact, and event submissions are wired into the shared template." />
         </div>
       </section>
+      <section className="section">
+        <div className="section-heading">
+          <p className="eyebrow">Patriots in Action TV</p>
+          <h2>Latest PIA video updates</h2>
+          <p>Watch recent interviews, candidate conversations, and updates from the Patriots in Action Vimeo channel.</p>
+        </div>
+        <VimeoFeed compact />
+      </section>
+    </Shell>
+  );
+}
+
+function MainTvPage() {
+  usePageTitle("PIA TV");
+
+  return (
+    <Shell route="static">
+      <PageHero eyebrow="Patriots in Action TV" title="PIA TV" subtitle="Latest videos, interviews, candidate conversations, and updates from Patriots in Action." />
+      <VimeoFeed />
     </Shell>
   );
 }
@@ -133,9 +158,25 @@ function StatePage() {
 function StateCandidatesPage() {
   const { stateSlug } = useParams();
   const state = getStateBySlug(stateSlug);
-  const statewideCandidates = getStatewideCandidates(stateSlug);
-  const localCandidates = getLocalCandidatesForState(stateSlug);
+  const [candidateSearch, setCandidateSearch] = useState("");
+  const [jurisdictionFilter, setJurisdictionFilter] = useState("all");
+  const [scopeFilter, setScopeFilter] = useState("all");
+  const [candidateSort, setCandidateSort] = useState("name");
   const allCandidates = getCandidatesForState(stateSlug);
+  const jurisdictionOptions = candidateJurisdictionOptions(allCandidates);
+  const scopeOptions = candidateScopeOptions(allCandidates);
+  const filteredCandidates = filterAndSortCandidates(allCandidates, {
+    search: candidateSearch,
+    jurisdiction: jurisdictionFilter,
+    scope: scopeFilter,
+    sort: candidateSort,
+  });
+  const statewideCandidates = filteredCandidates.filter((candidate) => candidate.scope === "statewide");
+  const localCandidates = filteredCandidates.filter((candidate) => candidate.scope !== "statewide");
+  const patriotMessagingCandidates = filteredCandidates.filter((candidate) => candidateProjectCandidateIds.has(candidate.id));
+  const remainingStatewideCandidates = statewideCandidates.filter((candidate) => !candidateProjectCandidateIds.has(candidate.id));
+  const remainingLocalCandidates = localCandidates.filter((candidate) => !candidateProjectCandidateIds.has(candidate.id));
+  const hasJurisdictionFilter = jurisdictionFilter !== "all";
 
   usePageTitle(state ? `${state.name} Candidates` : "Not Found");
   if (!state) return <NotFound />;
@@ -143,21 +184,45 @@ function StateCandidatesPage() {
   return (
     <Shell route="state">
       <PageHero eyebrow="Candidate Directory" title={`${state.name} candidates running for office`} subtitle="Browse statewide, district, county, city, and precinct candidates connected to Patriots in Action." />
-      <section className="section">
-        <div className="section-heading">
-          <p className="eyebrow">Statewide Races</p>
-          <h2>{statewideCandidates.length ? `${statewideCandidates.length} statewide candidates` : "Statewide candidates coming soon"}</h2>
-          <p>The source directory includes candidate names and offices, with room to add profile pages and campaign links later.</p>
-        </div>
-        <CandidateGrid candidates={statewideCandidates} emptyText={`No statewide ${state.name} candidates have been added yet.`} />
-      </section>
+      <CandidateFilters
+        jurisdictions={jurisdictionOptions}
+        jurisdiction={jurisdictionFilter}
+        scope={scopeFilter}
+        scopes={scopeOptions}
+        search={candidateSearch}
+        sort={candidateSort}
+        total={allCandidates.length}
+        visible={filteredCandidates.length}
+        onJurisdictionChange={setJurisdictionFilter}
+        onScopeChange={setScopeFilter}
+        onSearchChange={setCandidateSearch}
+        onSortChange={setCandidateSort}
+      />
+      {patriotMessagingCandidates.length && !hasJurisdictionFilter ? (
+        <section className="section">
+          <div className="section-heading">
+            <p className="eyebrow">Patriot Messaging</p>
+            <h2>Help these candidates reach Texas voters</h2>
+            <p>Support voter education, candidate interviews, and election outreach across Texas through Patriots for Action PAC.</p>
+          </div>
+          <CandidateGrid candidates={patriotMessagingCandidates} emptyText="No Patriot Messaging candidates are available yet." />
+        </section>
+      ) : null}
       <section className="section">
         <div className="section-heading">
           <p className="eyebrow">Local and District Races</p>
-          <h2>{localCandidates.length ? `${localCandidates.length} local and district candidates` : "Local candidates coming soon"}</h2>
-          <p>County pages show county-specific races when a candidate can be matched to a county.</p>
+          <h2>{remainingLocalCandidates.length ? `${remainingLocalCandidates.length} local and district candidates` : "Local candidates coming soon"}</h2>
+          <p>{hasJurisdictionFilter ? `Candidates matching ${jurisdictionFilter}. Statewide candidates are shown separately below.` : "County pages show county-specific races when a candidate can be matched to a county."}</p>
         </div>
-        <CandidateGrid candidates={localCandidates} emptyText={`No local ${state.name} candidates have been added yet.`} showCounty />
+        <CandidateGrid candidates={remainingLocalCandidates} emptyText={`No local ${state.name} candidates have been added yet.`} showCounty />
+      </section>
+      <section className="section">
+        <div className="section-heading">
+          <p className="eyebrow">Statewide Races</p>
+          <h2>{remainingStatewideCandidates.length ? `${remainingStatewideCandidates.length} statewide candidates` : "Statewide candidates coming soon"}</h2>
+          <p>{hasJurisdictionFilter ? `Statewide candidates are included with ${jurisdictionFilter} results because they appear on ballots across ${state.name}.` : "The source directory includes candidate names and offices, with room to add profile pages and campaign links later."}</p>
+        </div>
+        <CandidateGrid candidates={remainingStatewideCandidates} emptyText={`No statewide ${state.name} candidates have been added yet.`} />
       </section>
       {allCandidates.length ? <p className="source-note">Candidate data is modeled after the public Patriots in Action candidates directory.</p> : null}
     </Shell>
@@ -762,6 +827,7 @@ function Shell({ county, children, page, route }: { county?: CountySite; childre
             <Link to="/counties">Counties</Link>
             <a href={site.links.community}>Community</a>
             <Link to="/texas/candidates">Candidates</Link>
+            <Link to="/tv">PIA TV</Link>
             <a href={site.links.merch}>Merch</a>
             <Link to="/privacy">Privacy</Link>
           </nav>
@@ -846,20 +912,230 @@ function CustomBlocks({ county, page }: { county: CountySite; page: CountyPageKe
   );
 }
 
+type CandidateFilterOptions = {
+  search: string;
+  jurisdiction: string;
+  scope: string;
+  sort: string;
+};
+
+function CandidateFilters({
+  jurisdictions,
+  jurisdiction,
+  scope,
+  scopes,
+  search,
+  sort,
+  total,
+  visible,
+  onJurisdictionChange,
+  onScopeChange,
+  onSearchChange,
+  onSortChange,
+}: {
+  jurisdictions: string[];
+  jurisdiction: string;
+  scope: string;
+  scopes: string[];
+  search: string;
+  sort: string;
+  total: number;
+  visible: number;
+  onJurisdictionChange: (value: string) => void;
+  onScopeChange: (value: string) => void;
+  onSearchChange: (value: string) => void;
+  onSortChange: (value: string) => void;
+}) {
+  return (
+    <section className="candidate-filters" aria-label="Filter candidates">
+      <label className="field">
+        <span>Search candidates</span>
+        <input
+          value={search}
+          onChange={(event) => onSearchChange(event.target.value)}
+          placeholder="Search by name, county, office, district..."
+          type="search"
+        />
+      </label>
+      <label className="field">
+        <span>County / district</span>
+        <select value={jurisdiction} onChange={(event) => onJurisdictionChange(event.target.value)}>
+          <option value="all">All available areas</option>
+          {jurisdictions.map((area) => (
+            <option key={area} value={area}>{area}</option>
+          ))}
+        </select>
+      </label>
+      <label className="field">
+        <span>Race type</span>
+        <select value={scope} onChange={(event) => onScopeChange(event.target.value)}>
+          <option value="all">All race types</option>
+          {scopes.map((scopeName) => (
+            <option key={scopeName} value={scopeName}>{candidateScopeLabel(scopeName)}</option>
+          ))}
+        </select>
+      </label>
+      <label className="field">
+        <span>Sort by</span>
+        <select value={sort} onChange={(event) => onSortChange(event.target.value)}>
+          <option value="name">Name A-Z</option>
+          <option value="office">Office A-Z</option>
+          <option value="county">County A-Z</option>
+          <option value="race-type">Race type</option>
+        </select>
+      </label>
+      <p className="candidate-filter-count">{visible} of {total} candidates shown</p>
+    </section>
+  );
+}
+
+function candidateJurisdictionOptions(candidates: Candidate[]) {
+  return [...new Set(candidates.map(candidateJurisdiction).filter(Boolean))].sort((first, second) => first.localeCompare(second));
+}
+
+function candidateScopeOptions(candidates: Candidate[]) {
+  const scopeOrder = ["statewide", "district", "county", "precinct", "city"];
+  const availableScopes = new Set(candidates.map((candidate) => candidate.scope));
+  return scopeOrder.filter((scope) => availableScopes.has(scope as Candidate["scope"]));
+}
+
+function filterAndSortCandidates(candidates: Candidate[], options: CandidateFilterOptions) {
+  const query = options.search.trim().toLowerCase();
+
+  return candidates
+    .filter((candidate) => {
+      const matchesSearch = !query || [
+        candidate.name,
+        candidate.office,
+        candidate.countyName,
+        candidate.district,
+        candidate.scope,
+        candidate.party,
+      ].some((value) => value?.toLowerCase().includes(query));
+      const matchesJurisdiction = options.jurisdiction === "all" || candidate.scope === "statewide" || candidateJurisdiction(candidate) === options.jurisdiction;
+      const matchesScope = options.scope === "all" || candidate.scope === options.scope;
+      return matchesSearch && matchesJurisdiction && matchesScope;
+    })
+    .sort((first, second) => candidateSortValue(first, options.sort).localeCompare(candidateSortValue(second, options.sort)) || first.name.localeCompare(second.name));
+}
+
+function candidateSortValue(candidate: Candidate, sort: string) {
+  if (sort === "office") return candidate.office;
+  if (sort === "county") return candidateJurisdiction(candidate) || "Statewide";
+  if (sort === "race-type") return candidate.scope;
+  return candidate.name;
+}
+
+function candidateJurisdiction(candidate: Candidate) {
+  return candidate.countyName || candidate.district || (candidate.scope === "statewide" ? "Statewide" : "");
+}
+
+function candidateScopeLabel(scope: string) {
+  return scope.charAt(0).toUpperCase() + scope.slice(1);
+}
+
 function CandidateGrid({ candidates, emptyText, showCounty = false }: { candidates: Candidate[]; emptyText: string; showCounty?: boolean }) {
+  const [activeVideo, setActiveVideo] = useState<Candidate | null>(null);
+
   if (!candidates.length) return <p className="status">{emptyText}</p>;
 
   return (
-    <div className="candidate-grid">
-      {candidates.map((candidate) => (
-        <article className="candidate-card" key={candidate.id}>
-          <p className="eyebrow">{candidateLabel(candidate, showCounty)}</p>
-          <h3>{candidate.name}</h3>
-          <p>{candidate.office}</p>
-          {candidate.profileUrl ? <a className="button" href={candidate.profileUrl}>View Candidate</a> : null}
-        </article>
-      ))}
+    <>
+      <div className="candidate-grid">
+        {candidates.map((candidate) => (
+          <article className="candidate-card" key={candidate.id}>
+            {candidate.image ? <img className="candidate-photo" src={candidate.image} alt={candidate.name} /> : null}
+            <div className="candidate-card-heading">
+              <p className="eyebrow">{candidateLabel(candidate, showCounty)}</p>
+              <h3>{candidate.name}</h3>
+              <p>For {candidate.office}</p>
+            </div>
+            {candidate.videoEmbedUrl ? <CandidateVideoPreview candidate={candidate} onOpen={() => setActiveVideo(candidate)} /> : null}
+            <CandidateDetails candidate={candidate} />
+            {candidateProjectCandidateIds.has(candidate.id) ? (
+              <div className="candidate-support">
+                <a className="button red" href={candidateProjectUrl}>Help Get This Candidate&apos;s Message Out to Texas Voters</a>
+                <p>{candidateProjectDisclaimer}</p>
+              </div>
+            ) : null}
+          </article>
+        ))}
+      </div>
+      {activeVideo ? <CandidateVideoModal candidate={activeVideo} onClose={() => setActiveVideo(null)} /> : null}
+    </>
+  );
+}
+
+function CandidateVideoPreview({ candidate, onOpen }: { candidate: Candidate; onOpen: () => void }) {
+  return (
+    <button className="candidate-video-preview" type="button" onClick={onOpen}>
+      <iframe
+        allow="autoplay; fullscreen; picture-in-picture"
+        src={candidate.videoEmbedUrl}
+        title={candidate.videoTitle || `${candidate.name} video`}
+      />
+      <span>Watch Interview</span>
+    </button>
+  );
+}
+
+function CandidateVideoModal({ candidate, onClose }: { candidate: Candidate; onClose: () => void }) {
+  useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") onClose();
+    }
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [onClose]);
+
+  return (
+    <div className="video-modal" role="dialog" aria-modal="true" aria-label={`${candidate.name} video`}>
+      <button className="video-modal-backdrop" type="button" aria-label="Close video" onClick={onClose} />
+      <div className="video-modal-panel">
+        <div className="video-modal-header">
+          <div>
+            <p className="eyebrow">PIA TV Candidate Interview</p>
+            <h2>{candidate.name}</h2>
+          </div>
+          <button className="button" type="button" onClick={onClose}>Close</button>
+        </div>
+        <iframe
+          allow="autoplay; fullscreen; picture-in-picture"
+          allowFullScreen
+          src={candidate.videoEmbedUrl}
+          title={candidate.videoTitle || `${candidate.name} video`}
+        />
+      </div>
     </div>
+  );
+}
+
+function CandidateDetails({ candidate }: { candidate: Candidate }) {
+  const rows = [
+    { label: "Running For", value: candidate.office },
+    { label: "Party", value: candidate.party },
+    { label: "Ballotpedia Profile", value: candidate.ballotpediaUrl, linkText: candidate.name },
+    { label: "Email", value: candidate.email, href: candidate.email ? `mailto:${candidate.email}` : undefined },
+    { label: "Phone", value: candidate.phone, href: candidate.phone ? `tel:${candidate.phone.replace(/\D+/g, "")}` : undefined },
+    { label: "Website", value: candidate.websiteUrl, linkText: "Website" },
+  ].filter((row) => row.value);
+
+  return (
+    <dl className="candidate-details">
+      {rows.map((row) => (
+        <div key={row.label}>
+          <dt>{row.label}</dt>
+          <dd>
+            {row.href || row.value?.startsWith("http") ? (
+              <a href={row.href || row.value}>{row.linkText || row.value}</a>
+            ) : (
+              row.value
+            )}
+          </dd>
+        </div>
+      ))}
+    </dl>
   );
 }
 

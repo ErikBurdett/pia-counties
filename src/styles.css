@@ -371,11 +371,14 @@ nav a {
 
 .candidate-grid {
   align-items: stretch;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
 }
 
 .candidate-card {
   display: grid;
-  gap: 0.65rem;
+  gap: 1rem;
+  align-content: start;
+  overflow: hidden;
 }
 
 .candidate-card p {
@@ -386,6 +389,152 @@ nav a {
 
 .candidate-card .eyebrow {
   color: var(--blue);
+}
+
+.candidate-photo {
+  width: calc(100% + 2.7rem);
+  max-width: none;
+  aspect-ratio: 4 / 3;
+  margin: -1.35rem -1.35rem 0;
+  object-fit: cover;
+  object-position: top center;
+  background: #f8fafc;
+}
+
+.candidate-card-heading {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.candidate-video-preview {
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  border-radius: 16px;
+  background: var(--navy);
+  color: white;
+  cursor: pointer;
+}
+
+.candidate-video-preview iframe {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border: 0;
+  pointer-events: none;
+}
+
+.candidate-video-preview span {
+  position: absolute;
+  inset: auto 0 0;
+  padding: 0.75rem;
+  background: linear-gradient(transparent, rgba(17, 27, 71, 0.9));
+  font-weight: 900;
+  text-align: left;
+}
+
+.video-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+}
+
+.video-modal-backdrop {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  background: rgba(17, 27, 71, 0.76);
+  cursor: pointer;
+}
+
+.video-modal-panel {
+  position: relative;
+  z-index: 1;
+  width: min(1040px, 100%);
+  padding: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  border-radius: 24px;
+  background: var(--cream);
+  box-shadow: var(--shadow);
+}
+
+.video-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.video-modal-header h2 {
+  margin: 0;
+  color: var(--navy);
+}
+
+.video-modal-panel iframe {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border: 0;
+  border-radius: 16px;
+  background: var(--navy);
+}
+
+.candidate-details {
+  margin: 0;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.7);
+}
+
+.candidate-details div {
+  display: grid;
+  grid-template-columns: minmax(110px, 0.45fr) minmax(0, 1fr);
+}
+
+.candidate-details div + div {
+  border-top: 1px solid var(--border);
+}
+
+.candidate-details dt,
+.candidate-details dd {
+  margin: 0;
+  padding: 0.75rem;
+  line-height: 1.45;
+}
+
+.candidate-details dt {
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.candidate-details dd {
+  color: var(--navy);
+}
+
+.candidate-details a {
+  color: var(--blue);
+  font-weight: 800;
+}
+
+.candidate-support {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.candidate-support .button {
+  border-radius: 14px;
+  text-align: center;
+}
+
+.candidate-support p {
+  font-size: 0.82rem;
 }
 
 .source-note {
@@ -575,6 +724,7 @@ nav a {
 }
 
 .field input,
+.field select,
 .field textarea {
   width: 100%;
   border: 1px solid var(--border);
@@ -582,6 +732,26 @@ nav a {
   padding: 0.8rem 0.9rem;
   font: inherit;
   background: white;
+}
+
+.candidate-filters {
+  display: grid;
+  grid-template-columns: minmax(240px, 1.3fr) repeat(3, minmax(160px, 0.7fr));
+  gap: 1rem;
+  align-items: end;
+  margin: 2rem 0 3rem;
+  padding: 1.35rem;
+  border: 1px solid var(--border);
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.76);
+  box-shadow: 0 12px 36px rgba(17, 27, 71, 0.08);
+}
+
+.candidate-filter-count {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: var(--muted);
+  font-weight: 800;
 }
 
 .checkbox {
@@ -645,6 +815,8 @@ nav a {
 
   .feed-grid,
   .feed-item,
+  .candidate-filters,
+  .candidate-details div,
   .ad-card-leaderboard,
   .ad-card-inline,
   .ad-card-compact {
@@ -659,5 +831,10 @@ nav a {
   .ad-card-inline picture,
   .ad-card-compact picture {
     min-height: 0;
+  }
+
+  .video-modal-header {
+    align-items: stretch;
+    flex-direction: column;
   }
 }

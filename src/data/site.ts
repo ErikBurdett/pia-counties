@@ -8,7 +8,7 @@ export const site = {
     phone: "(866) 756 1776",
     phoneDial: "+18667561776",
     textPhone: "806.351.0084",
-    email: "info@patriotsinaction.com",
+    email: "support@patriotsinaction.com",
   },
   links: {
     community: "https://community.patriotsinaction.com/",
