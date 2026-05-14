@@ -1021,6 +1021,18 @@ nav a {
   align-items: start;
 }
 
+.consent-checkbox {
+  color: var(--muted);
+  font-size: 0.92rem;
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+.consent-checkbox a {
+  color: var(--blue);
+  font-weight: 900;
+}
+
 .privacy-reassurance {
   margin: -0.25rem 0 0;
   color: var(--muted);
