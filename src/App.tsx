@@ -962,7 +962,6 @@ function Shell({ county, children, page, route }: { county?: CountySite; childre
           <span>Meet Your Neighbors!</span>
           <a href={`tel:${site.contact.phoneDial}`}>{site.contact.phone}</a>
           <a href={`mailto:${site.contact.email}`}>{site.contact.email}</a>
-          {county?.primaryCity ? <span>{county.primaryCity}: weather coming soon</span> : null}
         </div>
       </header>
       <header className="site-header">
