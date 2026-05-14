@@ -10,6 +10,9 @@ export type CalendarEvent = {
   isAllDay?: boolean;
 };
 
+const DEFAULT_RAW_PROXY_URLS = ["https://api.allorigins.win/raw", "https://api.codetabs.com/v1/proxy"];
+const CALENDAR_FETCH_TIMEOUT_MS = 8000;
+
 function twoYearsFromNow() {
   const date = new Date();
   date.setFullYear(date.getFullYear() + 2);
@@ -22,12 +25,53 @@ export function normalizeCalendarFeedUrl(icsUrl: string) {
 }
 
 export async function fetchCalendarFeed(icsUrl: string): Promise<string> {
-  const response = await fetch(normalizeCalendarFeedUrl(icsUrl), { cache: "no-store" });
-  if (!response.ok) throw new Error(`Calendar feed failed with ${response.status}`);
+  const feedUrl = normalizeCalendarFeedUrl(icsUrl);
+  const errors: unknown[] = [];
 
-  const text = await response.text();
-  if (!/BEGIN:VCALENDAR/i.test(text)) throw new Error("Calendar response was not ICS text.");
-  return text;
+  for (const url of calendarRequestUrls(feedUrl)) {
+    try {
+      return await fetchCalendarText(url);
+    } catch (error) {
+      errors.push(error);
+    }
+  }
+
+  throw errors[errors.length - 1] || new Error("Calendar feed could not be loaded.");
+}
+
+async function fetchCalendarText(url: string) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), CALENDAR_FETCH_TIMEOUT_MS);
+
+  try {
+    const response = await fetch(url, { cache: "no-store", signal: controller.signal });
+    if (!response.ok) throw new Error(`Calendar feed failed with ${response.status}`);
+
+    const text = await response.text();
+    if (!/BEGIN:VCALENDAR/i.test(text)) throw new Error("Calendar response was not ICS text.");
+    return text;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+function calendarRequestUrls(feedUrl: string) {
+  const configuredProxyConfig = String(import.meta.env.VITE_CALENDAR_RAW_PROXY_URLS || import.meta.env.VITE_CALENDAR_RAW_PROXY_URL || "");
+  const configuredProxyUrls = configuredProxyConfig
+    .split(",")
+    .map((value: string) => value.trim())
+    .filter(Boolean);
+
+  return [
+    feedUrl,
+    ...(configuredProxyUrls.length ? configuredProxyUrls : DEFAULT_RAW_PROXY_URLS).map((proxyUrl: string) => rawProxyRequestUrl(proxyUrl, feedUrl)),
+  ];
+}
+
+function rawProxyRequestUrl(proxyUrl: string, feedUrl: string) {
+  const url = new URL(proxyUrl);
+  url.searchParams.set(url.hostname === "api.codetabs.com" ? "quest" : "url", feedUrl);
+  return url.toString();
 }
 
 export function combineIcsFeeds(icsTexts: string[]) {

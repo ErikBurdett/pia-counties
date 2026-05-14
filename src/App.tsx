@@ -4,7 +4,6 @@ import { AdSlot } from "./components/AdSlot";
 import { getCandidateById, getCandidatesForCounty, getCandidatesForState, type Candidate } from "./data/candidates";
 import { getCountiesForState, getCounty, getStateBySlug, states, type CountyPageKey, type CountySite } from "./data/counties";
 import { site } from "./data/site";
-import { apiUrl } from "./lib/api";
 import type { AdRouteType } from "./lib/ads";
 import { initGoogleTagManager, trackPageView } from "./lib/analytics";
 import { fetchCalendarFeed, parseIcsEvents, type CalendarEvent } from "./lib/calendar";
@@ -305,6 +304,7 @@ function StateCandidatesPage() {
   return (
     <Shell route="state">
       <PageHero eyebrow="Candidate Directory" title={`${state.name} candidates running for office`} subtitle="Browse statewide, district, county, city, and precinct candidates connected to Patriots in Action." />
+      <CandidateDirectoryNotice />
       <CandidateFilters
         jurisdictions={jurisdictionOptions}
         jurisdiction={jurisdictionFilter}
@@ -504,6 +504,7 @@ function CountyCandidates({ county }: { county: CountySite }) {
   return (
     <>
       <PageHero eyebrow="Candidate Directory" title={`${county.displayName} candidates`} subtitle={`Candidates running for local offices connected to ${county.displayName}, ${county.state.name}.`} />
+      <CandidateDirectoryNotice contactHref={`${countyPath(county)}/contact`} />
       <section className="section">
         <div className="section-heading">
           <p className="eyebrow">Local Ballot Watch</p>
@@ -520,6 +521,23 @@ function CountyCandidates({ county }: { county: CountySite }) {
         </div>
       </section>
     </>
+  );
+}
+
+function CandidateDirectoryNotice({ contactHref = `mailto:${site.contact.email}` }: { contactHref?: string }) {
+  return (
+    <section className="candidate-directory-notice">
+      <div>
+        <p className="eyebrow">Candidate Profiles</p>
+        <h2>Help us build the candidate directory</h2>
+        <p>
+          We are still gathering data on candidates nationwide down to the county level. If you are a candidate or working with a campaign,
+          reach out to us to get an interview and Patriots In Action Candidate Profile and learn more about Patriot Messaging and{" "}
+          <a href="https://patriotsforaction.org/">Patriots For Action (PAC)</a>.
+        </p>
+      </div>
+      <a className="button primary" href={contactHref}>Contact Us</a>
+    </section>
   );
 }
 
@@ -736,7 +754,7 @@ function handleScrollLoadMore(event: UIEvent<HTMLElement>, hasMore: boolean, loa
 }
 
 function EventCalendar({ county, compact = false }: { county: CountySite; compact?: boolean }) {
-  const feedUrl = county.calendar.proxyUrl ? apiUrl(county.calendar.proxyUrl) : county.calendar.icsUrl;
+  const feedUrl = county.calendar.icsUrl;
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [status, setStatus] = useState("Loading community events...");
 
