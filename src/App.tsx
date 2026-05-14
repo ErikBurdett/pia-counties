@@ -428,6 +428,7 @@ function CountyHome({ county }: { county: CountySite }) {
         </div>
         <img src={site.brand.operationShowUp} alt="Operation Show Up cover" />
       </section>
+      <CountyAboutCompact county={county} />
       <AdSlot county={county} page="home" route="county" slot="county-home-inline" />
       <section className="section split">
         <div>
@@ -441,6 +442,22 @@ function CountyHome({ county }: { county: CountySite }) {
       <ActionGrid county={county} />
       <CustomBlocks county={county} page="home" />
     </>
+  );
+}
+
+function CountyAboutCompact({ county }: { county: CountySite }) {
+  return (
+    <section className="compact-about">
+      <div>
+        <p className="eyebrow">{county.displayName} Action Hub</p>
+        <h2>Local information. Local relationships. Local action.</h2>
+      </div>
+      <p>
+        Use this county page to find voter resources, elected officials, candidates, local updates, events, and community links that help
+        Patriots move from concern to action where local decisions are made.
+      </p>
+      <Link className="button" to={`${countyPath(county)}/about`}>Learn About {county.displayName}</Link>
+    </section>
   );
 }
 
@@ -832,17 +849,18 @@ function VimeoFeed({ compact = false }: { compact?: boolean }) {
 }
 
 function CountyForm({ county, kind }: { county: CountySite; kind: "contact" | "event" }) {
-  const [status, setStatus] = useState("");
+  const [status, setStatus] = useState<{ message: string; tone: "success" | "error" } | undefined>();
   const [sending, setSending] = useState(false);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const form = new FormData(event.currentTarget);
+    const formElement = event.currentTarget;
+    const form = new FormData(formElement);
     if (form.get("website")) return;
     const values = Object.fromEntries(form.entries()) as Record<string, string>;
 
     setSending(true);
-    setStatus("");
+    setStatus(undefined);
     try {
       await sendCountyFormEmail({
         county,
@@ -853,10 +871,19 @@ function CountyForm({ county, kind }: { county: CountySite; kind: "contact" | "e
           consent: values.consent === "on",
         },
       });
-      event.currentTarget.reset();
-      setStatus(kind === "contact" ? "Your message has been sent." : "Thank you. Your event has been submitted for review.");
+      formElement.reset();
+      setStatus({
+        tone: "success",
+        message:
+          kind === "contact"
+            ? "Your message has been sent. You can expect a reply from a @patriotsinaction.com email."
+            : "Thank you. Your event has been submitted for review. You can expect a reply from a @patriotsinaction.com email.",
+      });
     } catch {
-      setStatus("Submission failed. Please check EmailJS settings or email us directly.");
+      setStatus({
+        tone: "error",
+        message: `Submission failed. Please try again or email us directly at ${site.contact.email}.`,
+      });
     } finally {
       setSending(false);
     }
@@ -890,7 +917,7 @@ function CountyForm({ county, kind }: { county: CountySite; kind: "contact" | "e
           <label className="checkbox"><input name="consent" type="checkbox" required /> I understand this submission will be reviewed before being added to the calendar.</label>
         </>
       )}
-      {status ? <p className="status">{status}</p> : null}
+      {status ? <p className={`status form-status-${status.tone}`}>{status.message}</p> : null}
       <button className="button primary" type="submit" disabled={sending}>{sending ? "Sending..." : kind === "contact" ? "Send Message" : "Submit Event"}</button>
       <p className="privacy-reassurance">Your Information Stays Safe With US. <Link to="/privacy">Read our Privacy Policy</Link>.</p>
     </form>
