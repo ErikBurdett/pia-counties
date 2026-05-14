@@ -93,6 +93,7 @@ function HomePage() {
           <p className="eyebrow">Join Our Interactive Community</p>
           <h1>County-by-county Patriot Networks.</h1>
           <p>{site.description}</p>
+          <p className="hero-tagline"><em>Patriot inaction is the cause. Patriots in Action is the Cure.</em></p>
           <div className="actions">
             <Link className="button primary" to="/counties">Find Your County</Link>
             <Link className="button red" to="/tx/candidates">Explore Your Candidates</Link>
@@ -419,6 +420,7 @@ function CountyHome({ county }: { county: CountySite }) {
           <p className="eyebrow">Presented by {county.displayName} Patriots</p>
           <h1>{county.heroTitle}</h1>
           <p>{county.heroSubtitle}</p>
+          <p className="hero-tagline"><em>Patriot inaction is the cause. Patriots in Action is the Cure.</em></p>
           <div className="actions">
             <a className="button primary" href={county.links.rewards}>Join Patriot Rewards</a>
             <Link className="button red" to="/tx/candidates">Explore Your Candidates</Link>

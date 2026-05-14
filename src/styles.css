@@ -167,6 +167,11 @@ nav a {
   line-height: 1.7;
 }
 
+.hero-tagline {
+  color: var(--red);
+  font-weight: 800;
+}
+
 .eyebrow {
   margin: 0 0 0.5rem;
   color: var(--red);
