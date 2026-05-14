@@ -1,4 +1,4 @@
-import type { CountySite } from "./counties";
+import { getStateBySlug, type CountySite } from "./counties";
 
 export type CandidateScope = "statewide" | "district" | "county" | "precinct" | "city";
 
@@ -769,8 +769,11 @@ export const candidates: Candidate[] = [
 ];
 
 export function getCandidatesForState(stateSlug?: string) {
-  if (!stateSlug) return [];
-  return sortCandidates(candidates.filter((candidate) => candidate.stateSlug === stateSlug.toLowerCase()));
+  const state = getStateBySlug(stateSlug);
+  if (!state) return [];
+  return sortCandidates(
+    candidates.filter((candidate) => candidate.stateSlug === state.slug || candidate.stateSlug === state.abbr.toLowerCase()),
+  );
 }
 
 export function getCandidatesForCounty(county: CountySite) {

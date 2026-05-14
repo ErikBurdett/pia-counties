@@ -1,11 +1,12 @@
 import { useEffect, useState, type FormEvent, type ReactNode, type UIEvent } from "react";
-import { Link, Navigate, NavLink, Route, Routes, useNavigate, useParams } from "react-router-dom";
+import { Link, Navigate, NavLink, Route, Routes, useLocation, useNavigate, useParams } from "react-router-dom";
 import { AdSlot } from "./components/AdSlot";
 import { getCandidateById, getCandidatesForCounty, getCandidatesForState, type Candidate } from "./data/candidates";
 import { counties, getCountiesForState, getCounty, getStateBySlug, states, type CountyPageKey, type CountySite } from "./data/counties";
 import { site } from "./data/site";
 import { apiUrl } from "./lib/api";
 import type { AdRouteType } from "./lib/ads";
+import { initGoogleTagManager, trackPageView } from "./lib/analytics";
 import { fetchCalendarFeed, parseIcsEvents, type CalendarEvent } from "./lib/calendar";
 import { sendCountyFormEmail } from "./lib/email";
 import { fetchRssFeedItems } from "./lib/rss-client";
@@ -32,27 +33,53 @@ function candidateProfilePath(candidate: Candidate) {
   return `/candidates/${candidate.id}`;
 }
 
+function statePath(state: { abbr: string }) {
+  return `/${state.abbr.toLowerCase()}`;
+}
+
+function countyPath(county: CountySite) {
+  return `${statePath(county.state)}/${county.slug}`;
+}
+
 function usePageTitle(title: string) {
   useEffect(() => {
     document.title = `${title} | ${site.name}`;
   }, [title]);
 }
 
+function AnalyticsTracker() {
+  const location = useLocation();
+
+  useEffect(() => {
+    initGoogleTagManager();
+  }, []);
+
+  useEffect(() => {
+    trackPageView(`${location.pathname}${location.search}`, document.title);
+  }, [location.pathname, location.search]);
+
+  return null;
+}
+
 function App() {
   return (
-    <Routes>
-      <Route path="/" element={<HomePage />} />
-      <Route path="/counties" element={<DirectoryPage />} />
-      <Route path="/tv" element={<MainTvPage />} />
-      <Route path="/privacy" element={<StaticPage title="Privacy Policy" />} />
-      <Route path="/terms" element={<StaticPage title="Terms" />} />
-      <Route path="/candidates/:candidateId" element={<CandidateProfilePage />} />
-      <Route path="/:stateSlug/candidates" element={<StateCandidatesPage />} />
-      <Route path="/:stateSlug" element={<StatePage />} />
-      <Route path="/:stateSlug/:countySlug" element={<CountyRoute page="home" />} />
-      <Route path="/:stateSlug/:countySlug/:pageSlug" element={<CountyRoute />} />
-      <Route path="*" element={<NotFound />} />
-    </Routes>
+    <>
+      <AnalyticsTracker />
+      <Routes>
+        <Route path="/" element={<HomePage />} />
+        <Route path="/counties" element={<DirectoryPage />} />
+        <Route path="/tv" element={<MainTvPage />} />
+      <Route path="/rewards" element={<RewardsPage />} />
+        <Route path="/privacy" element={<PrivacyPage />} />
+        <Route path="/terms" element={<TermsPage />} />
+        <Route path="/candidates/:candidateId" element={<CandidateProfilePage />} />
+        <Route path="/:stateSlug/candidates" element={<StateCandidatesPage />} />
+        <Route path="/:stateSlug" element={<StatePage />} />
+        <Route path="/:stateSlug/:countySlug" element={<CountyRoute page="home" />} />
+        <Route path="/:stateSlug/:countySlug/:pageSlug" element={<CountyRoute />} />
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </>
   );
 }
 
@@ -68,6 +95,7 @@ function HomePage() {
           <p>{site.description}</p>
           <div className="actions">
             <Link className="button primary" to="/counties">Find Your County</Link>
+            <Link className="button red" to="/tx/candidates">Explore Your Candidates</Link>
             <a className="button" href={site.links.community}>Join Our Community</a>
             <a className="button red" href={site.links.merch}>Shop Merchandise</a>
           </div>
@@ -76,14 +104,14 @@ function HomePage() {
       </section>
       <section className="section">
         <div className="section-heading">
-          <p className="eyebrow">Nationwide</p>
-          <h2>Same structure, local control</h2>
-          <p>Every county starts with the same pages, voter resources, calendar, feeds, TV, partner calls to action, and EmailJS forms. County overrides can add custom content, links, feeds, and local details.</p>
+          <p className="eyebrow">From Awareness To Action</p>
+          <h2>Built to help Patriots take back local power</h2>
+          <p>PatriotsInAction.com gives voters a practical county-by-county hub for finding local information, understanding who represents them, following community updates, and taking the next step where local government decisions are made.</p>
         </div>
         <div className="card-grid three">
-          <InfoCard title={`${states.length} states and DC`} body="State pages are generated from data, and each county gets a URL like /texas/potter." />
-          <InfoCard title={`${counties.length.toLocaleString()} county sites`} body="County pages are generated from the national counties dataset and can be customized one county at a time." />
-          <InfoCard title="Feeds and forms" body="Calendar ICS, news links, Vimeo TV, contact, and event submissions are wired into the shared template." />
+          <InfoCard title="Find Your Local Network" body={`Browse ${states.length} states and DC with county pages built to connect voters to local resources, officials, candidates, calendars, and community updates.`} />
+          <InfoCard title="Know Who Represents You" body="Use county pages to find voter resources, precinct maps, sample ballots, elected officials, candidate profiles, interviews, and links that help you make informed decisions." />
+          <InfoCard title="Move Patriots To Action" body="Follow local news, submit events, watch PIA TV, join the community, discover partners, and turn civic concern into practical action in your county." />
         </div>
       </section>
       <section className="section">
@@ -109,20 +137,85 @@ function MainTvPage() {
   );
 }
 
+function RewardsPage() {
+  usePageTitle("Patriot Rewards");
+
+  return (
+    <Shell route="static">
+      <PageHero
+        eyebrow="Patriot Rewards"
+        title="Your community connection hub"
+        subtitle="Patriots Rewards connects local Patriots with community updates, county action pages, partner resources, events, video updates, and ways to stay engaged between elections."
+      />
+      <section className="section split top-align">
+        <div>
+          <p className="eyebrow">How It Works</p>
+          <h2>Join once, stay connected locally.</h2>
+          <p>
+            The Patriots in Action Community is the central place to connect with neighbors, follow local civic updates, discover events, watch media,
+            and stay plugged into county-by-county action. County pages help you find the local resources; the community gives you a place to keep the
+            conversation and coordination going.
+          </p>
+          <div className="actions">
+            <a className="button primary" href={site.links.community}>Join Our Interactive Community</a>
+            <Link className="button" to="/counties">Find Your County</Link>
+          </div>
+        </div>
+        <div className="panel">
+          <h2>Patriot Rewards</h2>
+          <p>Patriot Rewards is designed to bring community, partners, media, and local action together in one place.</p>
+          <ul className="feature-list">
+            <li>Connect with your local county network.</li>
+            <li>Find updates, events, videos, and calls to action.</li>
+            <li>Discover partner resources and community benefits.</li>
+            <li>Stay informed through your county page and the broader Patriots in Action community.</li>
+          </ul>
+        </div>
+      </section>
+      <section className="section">
+        <div className="card-grid three">
+          <InfoCard title="Start With Your County" body="Find your county Patriot Network for local news, calendars, candidates, resources, and contact options." href="/counties" cta="Find Your County" />
+          <InfoCard title="Join The Community" body="Use the Patriots in Action community to connect, coordinate, and keep local conversations moving." href={site.links.community} cta="Join Now" />
+          <InfoCard title="Watch And Share" body="Use PIA TV and candidate profiles to share interviews, updates, and resources with neighbors." href="/tv" cta="Watch PIA TV" />
+        </div>
+      </section>
+    </Shell>
+  );
+}
+
 function DirectoryPage() {
+  const [stateSearch, setStateSearch] = useState("");
+  const stateQuery = stateSearch.trim().toLowerCase();
+  const visibleStates = states.filter((state) =>
+    [state.name, state.abbr, state.slug].some((value) => value.toLowerCase().includes(stateQuery)),
+  );
+
   usePageTitle("Find Your County");
 
   return (
     <Shell route="directory">
       <PageHero eyebrow="Counties" title="Find your county Patriot Network" subtitle="Choose a state to open local county pages for civic information, calendars, news, TV, partners, and forms." />
+      <section className="directory-search" aria-label="Search states">
+        <label className="field">
+          <span>Search states</span>
+          <input
+            value={stateSearch}
+            onChange={(event) => setStateSearch(event.target.value)}
+            placeholder="Search by state name or abbreviation..."
+            type="search"
+          />
+        </label>
+        <p>{visibleStates.length} of {states.length} states shown</p>
+      </section>
       <div className="directory-grid">
-        {states.map((state) => (
-          <Link key={state.abbr} className="directory-card" to={`/${state.slug}`}>
+        {visibleStates.map((state) => (
+          <Link key={state.abbr} className="directory-card" to={statePath(state)}>
             <strong>{state.name}</strong>
             <span>{getCountiesForState(state.slug).length} counties</span>
           </Link>
         ))}
       </div>
+      {!visibleStates.length ? <p className="status">No states match your search.</p> : null}
     </Shell>
   );
 }
@@ -132,9 +225,15 @@ function StatePage() {
   const state = getStateBySlug(stateSlug);
   const stateCounties = getCountiesForState(stateSlug);
   const stateCandidates = getCandidatesForState(stateSlug);
+  const [countySearch, setCountySearch] = useState("");
+  const countyQuery = countySearch.trim().toLowerCase();
+  const visibleCounties = stateCounties.filter((county) =>
+    [county.displayName, county.name, county.slug, county.primaryCity, county.fips].some((value) => value?.toLowerCase().includes(countyQuery)),
+  );
 
   usePageTitle(state ? `${state.name} Counties` : "Not Found");
   if (!state) return <NotFound />;
+  if (stateSlug?.toLowerCase() !== state.abbr.toLowerCase()) return <Navigate to={statePath(state)} replace />;
 
   return (
     <Shell route="state">
@@ -143,21 +242,34 @@ function StatePage() {
         <div className="panel">
           <h2>{state.name} candidates</h2>
           <p>{stateCandidates.length ? `${stateCandidates.length} candidate profiles are available for ${state.name}.` : "Candidate profiles for this state will be added soon."}</p>
-          <Link className="button primary" to={`/${state.slug}/candidates`}>View State Candidates</Link>
+          <Link className="button primary" to={`${statePath(state)}/candidates`}>View State Candidates</Link>
         </div>
         <div className="panel">
           <h2>County candidate pages</h2>
           <p>Each county site can list candidates running locally, including county, city, court, and precinct races.</p>
         </div>
       </section>
+      <section className="directory-search" aria-label={`Search ${state.name} counties`}>
+        <label className="field">
+          <span>Search {state.name} counties</span>
+          <input
+            value={countySearch}
+            onChange={(event) => setCountySearch(event.target.value)}
+            placeholder="Search by county, city, or FIPS..."
+            type="search"
+          />
+        </label>
+        <p>{visibleCounties.length} of {stateCounties.length} counties shown</p>
+      </section>
       <div className="directory-grid">
-        {stateCounties.map((county) => (
-          <Link key={county.fips} className="directory-card" to={`/${state.slug}/${county.slug}`}>
+        {visibleCounties.map((county) => (
+          <Link key={county.fips} className="directory-card" to={countyPath(county)}>
             <strong>{county.displayName}</strong>
             <span>{county.primaryCity || state.name}</span>
           </Link>
         ))}
       </div>
+      {!visibleCounties.length ? <p className="status">No counties match your search.</p> : null}
     </Shell>
   );
 }
@@ -187,6 +299,7 @@ function StateCandidatesPage() {
 
   usePageTitle(state ? `${state.name} Candidates` : "Not Found");
   if (!state) return <NotFound />;
+  if (stateSlug?.toLowerCase() !== state.abbr.toLowerCase()) return <Navigate to={`${statePath(state)}/candidates`} replace />;
 
   return (
     <Shell route="state">
@@ -244,10 +357,10 @@ function CandidateProfilePage() {
   usePageTitle(candidate ? `${candidate.name} Candidate Profile` : "Candidate Not Found");
   if (!candidate) return <NotFound />;
 
-  const backPath = candidate.countySlug && candidate.stateSlug
-    ? `/${candidate.stateSlug}/${candidate.countySlug}/candidates`
+  const backPath = candidate.countySlug && state
+    ? `${statePath(state)}/${candidate.countySlug}/candidates`
     : state
-      ? `/${state.slug}/candidates`
+      ? `${statePath(state)}/candidates`
       : "/counties";
 
   return (
@@ -265,7 +378,10 @@ function CountyRoute({ page }: { page?: CountyPageKey }) {
   const resolvedPage = page || normalizeCountyPage(pageSlug);
 
   if (!county) return <NotFound />;
-  if (!resolvedPage) return <Navigate to={`/${county.state.slug}/${county.slug}`} replace />;
+  if (stateSlug?.toLowerCase() !== county.state.abbr.toLowerCase()) {
+    return <Navigate to={resolvedPage && resolvedPage !== "home" ? `${countyPath(county)}/${resolvedPage}` : countyPath(county)} replace />;
+  }
+  if (!resolvedPage) return <Navigate to={countyPath(county)} replace />;
 
   return <CountyPage county={county} page={resolvedPage} />;
 }
@@ -305,8 +421,9 @@ function CountyHome({ county }: { county: CountySite }) {
           <p>{county.heroSubtitle}</p>
           <div className="actions">
             <a className="button primary" href={county.links.rewards}>Join Patriot Rewards</a>
-            <Link className="button" to={`/${county.state.slug}/${county.slug}/events`}>Community Calendar</Link>
-            <Link className="button" to={`/${county.state.slug}/${county.slug}/submit-event`}>Submit an Event</Link>
+            <Link className="button red" to="/tx/candidates">Explore Your Candidates</Link>
+            <Link className="button" to={`${countyPath(county)}/events`}>Community Calendar</Link>
+            <Link className="button" to={`${countyPath(county)}/submit-event`}>Submit an Event</Link>
           </div>
         </div>
         <img src={site.brand.operationShowUp} alt="Operation Show Up cover" />
@@ -330,12 +447,12 @@ function CountyHome({ county }: { county: CountySite }) {
 function CountyAbout({ county }: { county: CountySite }) {
   return (
     <>
-      <PageHero eyebrow={county.displayName} title="Making our founders proud." subtitle="Patriot inaction is the cause. Patriots in Action is the cure." />
+      <PageHero eyebrow={county.displayName} title="Making our founders proud." subtitle="Patriots in Action helps local voters find the information, relationships, and next steps they need to take action where it matters most." />
       <section className="section">
         <div className="card-grid three">
-          <InfoCard title="Stay informed" body="Find local civic resources, voting information, news feeds, events, and community updates." />
-          <InfoCard title="Take action" body="Submit events, connect with neighbors, partner with us, and participate where decisions are made." />
-          <InfoCard title="Build locally" body="County pages can add custom blocks, links, feeds, and featured elements while keeping a shared structure." />
+          <InfoCard title="Know Your Local Ground" body={`Use the ${county.displayName} page to find voter resources, elected officials, candidates, precinct information, local news, events, and community links in one place.`} />
+          <InfoCard title="Turn Concern Into Action" body="Follow what is happening locally, share candidate profiles and interviews, submit community events, and invite neighbors into practical civic action." />
+          <InfoCard title="Build County Power" body="Connect with the Patriots in Action community, discover trusted partners, and help restore accountability by showing up where local decisions are made." />
         </div>
       </section>
       <CustomBlocks county={county} page="about" />
@@ -379,7 +496,7 @@ function CountyCandidates({ county }: { county: CountySite }) {
           emptyText={`No ${county.displayName} candidate profiles have been added yet.`}
         />
         <div className="actions">
-          <Link className="button" to={`/${county.state.slug}/candidates`}>View {county.state.name} Candidates</Link>
+          <Link className="button" to={`${statePath(county.state)}/candidates`}>View {county.state.name} Candidates</Link>
           <a className="button primary" href="https://patriotsinaction.com/candidates/">Open PIA Candidate Directory</a>
         </div>
       </section>
@@ -405,7 +522,7 @@ function CountyEvents({ county }: { county: CountySite }) {
         <div className="panel">
           <h2>Submit an Event</h2>
           <p>Share your local meeting, fundraiser, training, or civic action event with the Patriots in Action team.</p>
-          <Link className="button primary" to={`/${county.state.slug}/${county.slug}/submit-event`}>Submit an Event</Link>
+          <Link className="button primary" to={`${countyPath(county)}/submit-event`}>Submit an Event</Link>
         </div>
       </section>
     </>
@@ -426,10 +543,30 @@ function CountyPartners({ county }: { county: CountySite }) {
     <>
       <PageHero eyebrow="Partners" title="Partner with Patriots in Action" subtitle="Preferred partners, sponsorships, merchandise, and Patriot Rewards." />
       <section className="section">
-        <div className="card-grid three">
-          <ResourceCard title="Preferred Partners" href={county.links.partner} />
-          <ResourceCard title="Patriot Rewards Program" href={county.links.rewards} />
-          <ResourceCard title="Patriotic Merch Store" href={county.links.merch} />
+        <div className="panel">
+          <p className="eyebrow">Preferred Partners</p>
+          <h2>Preferred Partners</h2>
+          <p>Connect with Patriots in Action partners, events, and stores that help keep local action moving.</p>
+          <ul className="partner-list">
+            <li>
+              <a href={site.links.piaEvents}>
+                <strong>piaevents.com</strong>
+                <span>Find upcoming Patriots in Action events and places to show up.</span>
+              </a>
+            </li>
+            <li>
+              <a href={site.links.piaEvents}>
+                <strong>The Patriots in Action Trailer Store</strong>
+                <span>Shop and connect with Patriots in Action at live events.</span>
+              </a>
+            </li>
+            <li>
+              <a href={county.links.merch}>
+                <strong>Merch Store</strong>
+                <span>Shop patriotic merchandise and gear from the Patriots in Action merch store.</span>
+              </a>
+            </li>
+          </ul>
         </div>
       </section>
     </>
@@ -508,7 +645,10 @@ function CountyNewsSection({ county, page }: { county: CountySite; page: CountyP
           <VimeoFeed compact />
         </div>
       </div>
-      <AdSlot county={county} page={page} route="county" slot="county-news-inline" />
+      <div className="news-sponsor-row">
+        <AdSlot county={county} page={page} route="county" slot="county-news-inline" limit={2} />
+        <a className="button primary" href={site.links.piaEvents}>Find Patriots in Action Events</a>
+      </div>
     </section>
   );
 }
@@ -626,71 +766,35 @@ function EventCalendar({ county, compact = false }: { county: CountySite; compac
   );
 }
 
-type VimeoVideo = {
-  uri?: string;
-  name?: string;
-  description?: string;
-  link?: string;
-  created_time?: string;
-  release_time?: string;
-  player_embed_url?: string;
-  pictures?: { sizes?: { link: string; width: number }[] };
-};
-
 function VimeoFeed({ compact = false }: { compact?: boolean }) {
-  const [videos, setVideos] = useState<VimeoVideo[]>([]);
+  const [videos, setVideos] = useState<NewsFeedItem[]>([]);
   const [status, setStatus] = useState("Loading videos...");
-  const [page, setPage] = useState(1);
-  const [hasMore, setHasMore] = useState(false);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const perPage = compact ? 8 : 12;
+  const [visibleCount, setVisibleCount] = useState(compact ? 8 : 12);
 
   useEffect(() => {
     let active = true;
 
-    fetch(apiUrl(`/api/vimeo-showcase?page=1&per_page=${perPage}`))
-      .then((response) => (response.ok ? response.json() : Promise.reject(new Error("Vimeo error"))))
-      .then((json: { data?: VimeoVideo[] }) => {
+    fetchRssFeedItems(site.links.vimeoTvRss)
+      .then((items) => {
         if (!active) return;
-        const nextVideos = sortVideosNewest(json.data || []);
-        setVideos(nextVideos);
-        setPage(1);
-        setHasMore(nextVideos.length === perPage);
-        setStatus(nextVideos.length ? "" : "No videos found in this Vimeo feed.");
+        setVideos(items);
+        setVisibleCount(compact ? 8 : 12);
+        setStatus(items.length ? "" : "No videos found in this Vimeo feed.");
       })
       .catch(() => {
         if (!active) return;
         setVideos([]);
-        setPage(1);
-        setHasMore(false);
-        setStatus("Could not load the Vimeo feed. Check the Vimeo proxy token and deployment logs.");
+        setVisibleCount(compact ? 8 : 12);
+        setStatus("Could not load the Vimeo feed right now.");
       });
 
     return () => {
       active = false;
     };
-  }, [perPage]);
+  }, [compact]);
 
-  async function loadMoreVideos() {
-    if (loadingMore || !hasMore) return;
-
-    const nextPage = page + 1;
-    setLoadingMore(true);
-
-    try {
-      const response = await fetch(apiUrl(`/api/vimeo-showcase?page=${nextPage}&per_page=${perPage}`));
-      if (!response.ok) throw new Error("Vimeo error");
-      const json = (await response.json()) as { data?: VimeoVideo[] };
-      const nextVideos = sortVideosNewest(json.data || []);
-      setVideos((currentVideos) => sortVideosNewest([...currentVideos, ...nextVideos]));
-      setHasMore(nextVideos.length === perPage);
-      setPage(nextPage);
-    } catch {
-      setHasMore(false);
-    } finally {
-      setLoadingMore(false);
-    }
-  }
+  const visibleVideos = videos.slice(0, visibleCount);
+  const hasMore = visibleCount < videos.length;
 
   return (
     <section className={compact ? "feed-widget" : "section"}>
@@ -702,45 +806,29 @@ function VimeoFeed({ compact = false }: { compact?: boolean }) {
         </div>
       ) : null}
       {status ? <p className="status">{status}</p> : null}
-      <div className="feed-list video-feed scroll-feed" onScroll={(event) => handleScrollLoadMore(event, hasMore && !loadingMore, loadMoreVideos)}>
-        {videos.map((video) => {
-          const thumbnail = videoThumbnail(video);
+      <div className="feed-list video-feed scroll-feed" onScroll={(event) => handleScrollLoadMore(event, hasMore, () => setVisibleCount((count) => count + (compact ? 8 : 12)))}>
+        {visibleVideos.map((video) => {
           return (
-            <a className={thumbnail ? "feed-item video-feed-item" : "feed-item video-feed-item no-image"} href={video.link || site.links.vimeoTv} key={video.uri || video.link || video.name}>
-              {thumbnail ? <img src={thumbnail} alt="" /> : null}
+            <a className={video.imageUrl ? "feed-item video-feed-item" : "feed-item video-feed-item no-image"} href={video.link || site.links.vimeoTv} key={video.id}>
+              {video.imageUrl ? <img src={video.imageUrl} alt="" /> : null}
               <div>
-                <strong>{video.name || "Patriots in Action TV"}</strong>
-                <span>{["Vimeo", formatFeedDate(video.release_time || video.created_time)].filter(Boolean).join(" | ")}</span>
+                <strong>{video.title || "Patriots in Action TV"}</strong>
+                <span>{["Vimeo", formatFeedDate(video.publishedAt)].filter(Boolean).join(" | ")}</span>
                 {video.description ? <p>{video.description}</p> : null}
               </div>
             </a>
           );
         })}
-        {hasMore || loadingMore ? <p className="feed-more">{loadingMore ? "Loading more..." : "Scroll for more"}</p> : null}
+        {hasMore ? <p className="feed-more">Scroll for more</p> : null}
       </div>
-      {!compact && (hasMore || loadingMore) ? (
-        <button className="button primary" type="button" onClick={loadMoreVideos} disabled={loadingMore}>
-          {loadingMore ? "Loading..." : "Load more videos"}
+      {!compact && hasMore ? (
+        <button className="button primary" type="button" onClick={() => setVisibleCount((count) => count + 12)}>
+          Load more videos
         </button>
       ) : null}
       {compact ? <a className="feed-source" href={site.links.vimeoTv}>Open Vimeo channel</a> : null}
     </section>
   );
-}
-
-function sortVideosNewest(videos: VimeoVideo[]) {
-  return [...videos].sort((first, second) => videoTimestamp(second) - videoTimestamp(first));
-}
-
-function videoTimestamp(video: VimeoVideo) {
-  const date = video.release_time || video.created_time;
-  const timestamp = date ? new Date(date).getTime() : 0;
-  return Number.isNaN(timestamp) ? 0 : timestamp;
-}
-
-function videoThumbnail(video: VimeoVideo) {
-  const sizes = video.pictures?.sizes || [];
-  return [...sizes].sort((first, second) => Math.abs(first.width - 220) - Math.abs(second.width - 220))[0]?.link;
 }
 
 function CountyForm({ county, kind }: { county: CountySite; kind: "contact" | "event" }) {
@@ -804,6 +892,7 @@ function CountyForm({ county, kind }: { county: CountySite; kind: "contact" | "e
       )}
       {status ? <p className="status">{status}</p> : null}
       <button className="button primary" type="submit" disabled={sending}>{sending ? "Sending..." : kind === "contact" ? "Send Message" : "Submit Event"}</button>
+      <p className="privacy-reassurance">Your Information Stays Safe With US. <Link to="/privacy">Read our Privacy Policy</Link>.</p>
     </form>
   );
 }
@@ -818,7 +907,7 @@ function FormInput({ name, label, type = "text", required = false, textarea = fa
 }
 
 function CountyShell({ county, page, children }: { county: CountySite; page: CountyPageKey; children: ReactNode }) {
-  const base = `/${county.state.slug}/${county.slug}`;
+  const base = countyPath(county);
   return (
     <Shell county={county} page={page} route="county">
       <nav className="county-tabs" aria-label={`${county.displayName} pages`}>
@@ -835,6 +924,8 @@ function CountyShell({ county, page, children }: { county: CountySite; page: Cou
 }
 
 function Shell({ county, children, page, route }: { county?: CountySite; children: ReactNode; page?: CountyPageKey; route: AdRouteType }) {
+  const [menuOpen, setMenuOpen] = useState(false);
+
   return (
     <>
       <header className="topbar">
@@ -851,13 +942,25 @@ function Shell({ county, children, page, route }: { county?: CountySite; childre
             <img src={site.brand.icon} alt="" />
             <span>{site.name}</span>
           </Link>
-          <nav>
+          <button
+            className="menu-toggle"
+            type="button"
+            aria-controls="site-navigation"
+            aria-expanded={menuOpen}
+            onClick={() => setMenuOpen((open) => !open)}
+          >
+            <span />
+            <span />
+            <span />
+            <span className="sr-only">Toggle navigation</span>
+          </button>
+          <nav id="site-navigation" className={menuOpen ? "site-nav open" : "site-nav"} onClick={() => setMenuOpen(false)}>
             <Link to="/counties">Counties</Link>
+            <Link to="/rewards">Rewards</Link>
             <a href={site.links.community}>Community</a>
-            <Link to="/texas/candidates">Candidates</Link>
+            <Link to="/tx/candidates">Candidates</Link>
             <Link to="/tv">PIA TV</Link>
             <a href={site.links.merch}>Merch</a>
-            <Link to="/privacy">Privacy</Link>
           </nav>
         </div>
       </header>
@@ -884,6 +987,7 @@ function Footer() {
         <div>
           <h3>Stay informed</h3>
           <Link to="/counties">County Directory</Link>
+          <Link to="/rewards">Patriot Rewards</Link>
           <a href={site.links.community}>Join Our Interactive Community</a>
           <a href={site.links.merch}>Merch Store</a>
         </div>
@@ -891,6 +995,7 @@ function Footer() {
           <h3>Contact</h3>
           <a href={`tel:${site.contact.phoneDial}`}>{site.contact.phone}</a>
           <a href={`mailto:${site.contact.email}`}>{site.contact.email}</a>
+          <Link to="/privacy">Privacy</Link>
           <Link to="/terms">Terms</Link>
         </div>
       </div>
@@ -1176,14 +1281,8 @@ function ShareCandidateProfileButton({ candidate }: { candidate: Candidate }) {
 
   async function handleShare() {
     const url = new URL(path, window.location.origin).toString();
-    const title = `${candidate.name} Candidate Profile`;
 
     try {
-      if (navigator.share) {
-        await navigator.share({ title, text: `View ${candidate.name}'s candidate profile.`, url });
-        return;
-      }
-
       await navigator.clipboard.writeText(url);
       setStatus("Copied");
       window.setTimeout(() => setStatus(""), 1800);
@@ -1267,14 +1366,108 @@ function ResourceCard({ title, href }: { title: string; href: string }) {
   );
 }
 
-function StaticPage({ title }: { title: string }) {
-  usePageTitle(title);
+function TermsPage() {
+  usePageTitle("Terms");
 
   return (
     <Shell route="static">
-      <PageHero eyebrow={site.name} title={title} subtitle="This page is a starter policy page for the new Patriots in Action application." />
-      <section className="section narrow">
-        <p>Use this page for the official {title.toLowerCase()} content before launch.</p>
+      <PageHero eyebrow={site.name} title="Terms & Conditions" subtitle="Last revised 01/01/2026" />
+      <section className="section narrow legal-content">
+        <h2>Terms & Conditions</h2>
+        <p>Last revised 01/01/2026</p>
+        <p>These Terms and Conditions (“Terms”) apply to your access to and use of the websites and other online services (collectively, the “Services”) provided by PatriotsInActionTX.com (“client”, “we” or “us”). By accessing and using the Services, you agree to these Terms. If you do not agree to these Terms, do not use the Services.</p>
+        <p>We may provide additional or different terms and conditions with respect to some of the Services (“Additional Terms”). If you use any Services with</p>
+        <p>Additional Terms: The Additional Terms will apply to your use of such Services. If there is any conflict between these Terms and any Additional Terms, the Additional Terms will control to the extent of such conflict.</p>
+        <p>We may update these Terms from time to time. If we make any changes to these Terms, we will notify you by revising the “Last Revised” date at the top of these Terms, and, in some cases, we may provide you with additional notice (such as by adding a statement to our website homepage or by sending you a notification).</p>
+        <p>Unless otherwise indicated in our notice to you, any changes to these Terms will be effective immediately, and your continued use of the Services following our provision of such notice will confirm your acceptance of such changes. If you do not agree to any changes to these Terms, you must stop using the Services.</p>
+        <p>If you have any questions regarding these Terms or the Services, please contact us at: <strong>[email protected]</strong></p>
+        <h3>Privacy Policy</h3>
+        <p>For information about how we collect, use, and share information about you, please see our Privacy Policy.</p>
+        <h3>Mobile Communications</h3>
+        <p>If you subscribe to receive messages or calls, you consent to receive automated messages from us via your mobile device. Subscribers may receive multiple messages a week from client.</p>
+        <p>We do not charge for these services. However, your carrier’s normal messaging, data, and other rates and fees will still apply. You should check with your carrier to find out what plans are available and how much they cost. At any time, you may text STOP to cancel or HELP for customer support</p>
+        <p>information. For all questions about the services provided, you can send an email to <strong>[email protected]</strong></p>
+        <p>Carriers are not liable for delayed or undelivered messages.</p>
+        <p>By entering your phone number and selecting to opt in, you consent to join a recurring SMS/MMS text messaging program that will provide alerts, donation requests, updates, and other important information. By participating, you agree to the terms & privacy policy for auto-dialed messages from client to the phone number you provide. No consent is required to buy. Msg & data rates may apply. Reply HELP for help or STOP to opt-out at any time. SMS information is not rented, sold, or shared. Privacy Policy and Terms and Conditions.</p>
+        <h3>Ownership and Limited License</h3>
+        <p>The Services, including the text, graphics, images, photographs, videos, illustrations, and other content contained therein, are owned by client or our licensors and are protected under both United States and foreign laws. Except as explicitly stated in these Terms, all rights in and to the Services are reserved by us or our licensors. Subject to your compliance with these Terms, you are hereby granted a limited, nonexclusive, non-transferable, non-sublicensable, revocable license to access and use our Services for your own personal, informational, and non-commercial use. Any use of the Services other than as specifically authorized herein, without our prior written permission, is strictly prohibited and will terminate the license granted herein and violate our intellectual property rights.</p>
+        <h3>Trademarks</h3>
+        <p>“client”, “client” and our logos, our slogans, our product or service names, and the look and feel of the Services are trademarks of client and may not be copied, imitated or used, in whole or in part, without our prior written permission. All other trademarks, registered trademarks, product or service names, and company names or logos mentioned on or included in the Services are the property of their respective owners. Reference to any products, services, processes, or other information by trade name, trademark, manufacturer, supplier, or otherwise does not constitute or imply endorsement, sponsorship, or recommendation thereof by us.</p>
+        <h3>Feedback</h3>
+        <p>You may voluntarily submit or otherwise communicate to us any questions, comments, suggestions, ideas, original or creative materials, or other</p>
+        <p>information about client or the Services (collectively, “Feedback”). You understand that we may use Feedback for any purpose, without acknowledgment or compensation to you, including to develop, copy, publish, or improve the Feedback in our sole discretion. You understand that client may treat Feedback as nonconfidential.</p>
+        <h3>Third-Party Content</h3>
+        <p>We may provide information about third-party products, services, activities, or events, or we may allow third parties to make their content and information available on or through the Services (collectively, “Third-Party Content”). We provide Third-Party Content as a service to those interested in such content. Your dealings or correspondence with third parties and your use of or interaction with any Third-Party Content are solely between you and the applicable third party. The client does not control or endorse, and makes no representations or warranties regarding, any Third-Party Content. Your access to and use of Third-Party Content is at your own risk.</p>
+        <h3>Prohibited Content and Conduct</h3>
+        <p>You will not violate any applicable law, contract, intellectual property right, or other third-party right or commit a tort, and you are solely responsible for your conduct while using the Services. You will not: engage in any harassing, threatening, intimidating, predatory, or stalking conduct; impersonate, submit, or post on behalf of any person or entity, or otherwise misrepresent your affiliation with a person or entity; sell, resell, or commercially use the Services; copy, reproduce, distribute, publicly perform, or publicly display all or portions of the Services, except as expressly permitted by us or our licensors; modify the Services, remove any proprietary rights notices or markings, or otherwise make any derivative works based upon the Services without our prior written consent; use the Services other than for their intended purpose or in any manner that could interfere with, disrupt, negatively affect, or inhibit other users from fully enjoying the Services or that could damage, disable, overburden, or impair the functioning of the Services in any manner; reverse engineer any aspect of the Services or do anything that might discover source code or that might bypass or circumvent measures employed to prevent or limit access to any part ofthe Services; use any data mining, robots, or similar data gathering or extraction methods designed to scrape or extract data from the Services; develop or use any applications that interact with the Services without our prior written consent; send, distribute, or post spam, unsolicited or bulk commercial electronic communications, chain letters, or pyramid schemes; bypass or ignore instructions contained in our robots.txt file; or use the Services for any illegal or unauthorized purpose, or engagein, encourage, or promote any activity that violates these Terms. This Section 7 does not create any private right of action on the part of any third party or any reasonable expectation that the Services will not contain any content that is prohibited by such rules.</p>
+        <h3>Indemnification</h3>
+        <p>To the fullest extent permitted by applicable law, you will defend, indemnify, and hold harmless client and its officers, directors, employees, volunteers and agents (individually and collectively, the “client Parties”), from and against any claims, damages, costs, liabilities, and expenses (including reasonable attorneys’ fees) (“Claims”) arising out of or related to (a) your access to and use of the Services; (b) your Feedback; (c) your violation of these Terms; (d) your conduct in connection with the Services; or (e) your violation, misappropriation, or infringement of any rights of any third party (including intellectual property or privacy rights).</p>
+        <h3>Disclaimer</h3>
+        <p>Your use of the services is at your sole risk. Except as expressly provided otherwise in a writing by client, the services and any content therein are provided on an “as is” and “as available” basis without warranties of any kind, either express or implied, including, without limitation, implied warranties of merchantability, fitness for a particular purpose, title and non-infringement. In addition, client does not represent or warrant that the services or any content therein are accurate, complete, reliable, current, or error-free.</p>
+        <p>While client attempts to make your use of the services and any content therein safe, client cannot and does not represent or warrant that the services or any content therein or our server(s) are free of viruses or other harmful components. You assume the entire risk as to the quality and performance of the services.</p>
+        <h3>Limitation of Liability</h3>
+        <p>To the fullest extent permitted by applicable law, in no event will client or any other client parties be liable to you under any theory of liability (whether based in contract, tort, negligence, warranty, or otherwise) for any indirect, consequential, incidental, exemplary, punitive or special damages, or any other damages of any kind, including, without limitation, loss of use, loss of profits or loss of data, even if client or any other client parties have been advised of the possibility of such damages.</p>
+        <p>In no event will the aggregate liability of client and the other client parties for any claims arising out of or relating to these terms or the services, regardless of the form of the action, exceed any compensation you pay, if any, to client for access to or use of the services.</p>
+        <p>The limitations set forth in this section will not limit or exclude liability for the gross negligence, fraud, or intentional misconduct of client or any other client parties or for any other matters for which liability cannot be excluded or limited under applicable law. In addition, please note that some jurisdictions do not allow limitations on implied warranties or the exclusion or limitation of certain damages. Therefore, some or all of the above exclusions or limitations may not apply to you.</p>
+        <h3>Transfer and Processing of Data</h3>
+        <p>In order for us to provide the Services, you agree that we may process, transfer, and store information about you in the United States and other countries, where you may not have the same rights and protections as you do under local law.</p>
+        <h3>Applicable Law and Venue</h3>
+        <p>Any dispute arising out of or related to these Terms or your use of the Services will be governed by and construed and enforced in accordance with the laws of the State of Texas applicable to agreements made and to be entirely performed within the State of Texas, without regard to its conflict of law provisions. Each party irrevocably consents to the exclusive jurisdiction and venue of the state and federal courts located in the State of Texas.</p>
+        <p>for all disputes arising out of or related to these Terms or your use of the Services.</p>
+        <h3>Modification or Termination of the Services</h3>
+        <p>We reserve the right to modify the Services or to suspend or stop providing all or portions of the Services at any time and without prior notice to you. We are not responsible for any loss or harm related to your inability to access or use the Services.</p>
+        <h3>Severability</h3>
+        <p>If any provision or portion of a provision of these Terms is deemed to be unlawful, void or unenforceable, that provision or portion thereof is deemed severable from these Terms and will not affect the validity and enforceability of any remaining provisions.</p>
+        <h3>Miscellaneous</h3>
+        <p>Any failure by client to enforce any provision of these Terms will not be deemed a waiver of future enforcement of that or any other provision of these Terms, unless expressly waived in writing by client. The section titles in these Terms are for convenience only and have no legal or contractual effect. Except as otherwise provided in these Terms, these Terms are intended solely for the benefit of the parties and are not intended to confer third-party beneficiary rights upon any other person or entity. You agree that communications and transactions between us may be conducted electronically.</p>
+      </section>
+    </Shell>
+  );
+}
+
+function PrivacyPage() {
+  usePageTitle("Privacy Policy");
+
+  return (
+    <Shell route="static">
+      <PageHero eyebrow={site.name} title="Privacy Policy" subtitle="Effective Date: 01-01-2026" />
+      <section className="section narrow legal-content">
+        <h2>Privacy Policy</h2>
+        <p>Privacy Policy for <strong>PatriotsConnect.com</strong> Website</p>
+        <p>Effective Date: <strong>01-01-2026</strong></p>
+        <p><strong>PatriotsConnect.com</strong> (“we,” “us,” or “our”) is committed to protecting the privacy of</p>
+        <p>visitors and users (“you” or “your”) of our political campaign website. This Privacy Policy outlines our practices regarding the collection, use, and disclosure of personal information through our website. By accessing and using our website, you consent to the terms of this Privacy Policy.</p>
+        <h3>1. Information We Collect:</h3>
+        <ol>
+          <li>Personal Information: We may collect personal information you voluntarily provide to us, such as your name, email address, postal address, phone number, and any other information you submit through our website’s forms.</li>
+          <li>Text Messaging Opt-In Data: If you choose to opt-in to receive text messages from us, we may collect your phone number and related data required for text messaging services.</li>
+          <li>Automatically Collected Information: When you visit our website, we may automatically collect certain information about your device, browser, and usage patterns. This information may include IP addresses, cookies, and other tracking technologies.</li>
+        </ol>
+        <h3>2. Use of Information:</h3>
+        <ol>
+          <li>We may use the personal information you provide to us for the following purposes:</li>
+          <li>To communicate with you, respond to your inquiries, and provide information about our</li>
+          <li>To send you updates, newsletters, and other campaign-related</li>
+          <li>To analyze and improve our website’s performance, content, and user</li>
+          <li>To comply with legal obligations and enforce our rights and</li>
+          <li>Text Messaging Opt-In Data: Your phone number and related data collected for text messaging services will only be used to send you campaign-related text messages and updates.</li>
+        </ol>
+        <h3>3. Sharing of Information:</h3>
+        <ol>
+          <li>We will not share, sell, rent, or disclose your personal information to any third parties, except as described in this Privacy Policy or when required by law.</li>
+          <li>Text Messaging Opt-In Data: We will not share or sell your text messaging opt-in data, consent, or related personal information with any third parties, unless required by law.</li>
+        </ol>
+        <h3>4. Data Security:</h3>
+        <p>We take reasonable measures to protect the security of your personal information and employ industry-standard security technologies to safeguard it. However, no method of transmission over the internet or electronic storage is 100% secure, and we cannot guarantee absolute security.</p>
+        <h3>5. Third-Party Services:</h3>
+        <p>Our website may contain links to third-party websites or services. We are not responsible for the privacy practices or content of such third parties. We encourage you to review the privacy policies of those third parties when accessing their websites or services.</p>
+        <h3>6. Children’s Privacy:</h3>
+        <p>Our website is not intended for use by individuals under the age of 13. We do not knowingly collect personal information from children under 13. If we become aware that we have collected personal information from a child under 13 without parental consent, we will take steps to remove such information from our records.</p>
+        <h3>7. Updates to this Privacy Policy:</h3>
+        <p>We may update this Privacy Policy from time to time to reflect changes in our practices or for other operational, legal, or regulatory reasons. Any changes will be effective immediately upon posting of the revised Privacy Policy on our website. We encourage you to review this page periodically for the latest information on our privacy practices.</p>
+        <h3>8. Contact Us:</h3>
+        <p>If you have any questions or concerns regarding this Privacy Policy or our privacy practices, please contact us at:</p>
+        <p><strong>[email protected]</strong></p>
       </section>
     </Shell>
   );

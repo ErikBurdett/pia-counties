@@ -127,6 +127,7 @@ export const states: StateSite[] = [
 
 const statesBySlug = new Map(states.map((state) => [state.slug, state]));
 const statesByAbbr = new Map(states.map((state) => [state.abbr, state]));
+const statesByAbbrSlug = new Map(states.map((state) => [state.abbr.toLowerCase(), state]));
 
 export function slugify(value: string) {
   return value
@@ -255,12 +256,16 @@ export const counties = states.flatMap((state) =>
 const countiesByStateAndSlug = new Map(counties.map((county) => [`${county.state.slug}/${county.slug}`, county]));
 
 export function getStateBySlug(slug?: string) {
-  return slug ? statesBySlug.get(slug.toLowerCase()) : undefined;
+  if (!slug) return undefined;
+  const normalized = slug.toLowerCase();
+  return statesBySlug.get(normalized) || statesByAbbrSlug.get(normalized);
 }
 
 export function getCounty(stateSlug?: string, countySlug?: string) {
   if (!stateSlug || !countySlug) return undefined;
-  return countiesByStateAndSlug.get(`${stateSlug.toLowerCase()}/${countySlug.toLowerCase()}`);
+  const state = getStateBySlug(stateSlug);
+  if (!state) return undefined;
+  return countiesByStateAndSlug.get(`${state.slug}/${countySlug.toLowerCase()}`);
 }
 
 export function getCountiesForState(stateSlug?: string) {

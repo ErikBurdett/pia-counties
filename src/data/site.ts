@@ -12,13 +12,15 @@ export const site = {
   },
   links: {
     community: "https://community.patriotsinaction.com/",
+    piaEvents: "https://piaevents.com/",
     merch: "https://shop.patriotsinaction.com/",
-    rewards: "https://patriotsinaction.com/partners",
+    rewards: "/rewards",
     partner: "https://patriotsinaction.com/partners",
     registerToVote: "https://www.vote.gov/register",
     nationalNews: "https://www.theepochtimes.com/rss",
     googleNewsRssSearch: "https://news.google.com/rss/search",
     vimeoTv: "https://vimeo.com/patriotsinactiontv",
+    vimeoTvRss: "https://vimeo.com/patriotsinactiontv/videos/rss",
   },
   brand: {
     patriot: "/brand/PIAPatriot.png",

@@ -33,6 +33,17 @@ img {
   margin-inline: auto;
 }
 
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 .topbar {
   background: var(--navy);
   color: white;
@@ -90,6 +101,26 @@ nav {
 nav a {
   font-weight: 700;
   text-decoration: none;
+}
+
+.menu-toggle {
+  display: none;
+  width: 44px;
+  height: 44px;
+  place-content: center;
+  gap: 5px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: white;
+  cursor: pointer;
+}
+
+.menu-toggle span:not(.sr-only) {
+  display: block;
+  width: 22px;
+  height: 2px;
+  border-radius: 999px;
+  background: var(--navy);
 }
 
 .hero,
@@ -165,6 +196,19 @@ nav a {
 .sponsor-slot-county-page-footer,
 .sponsor-slot-site-footer {
   margin: 3rem 0 0;
+}
+
+.sponsor-slot-county-news-inline {
+  grid-template-columns: repeat(2, minmax(220px, 1fr));
+  justify-items: center;
+  align-items: center;
+}
+
+.news-sponsor-row {
+  display: grid;
+  gap: 1rem;
+  justify-items: center;
+  margin: 2rem 0 0;
 }
 
 .sponsor-card {
@@ -848,10 +892,101 @@ nav a {
   font-weight: 800;
 }
 
+.directory-search {
+  display: grid;
+  grid-template-columns: minmax(240px, 1fr) auto;
+  gap: 1rem;
+  align-items: end;
+  margin: 2rem 0;
+  padding: 1.35rem;
+  border: 1px solid var(--border);
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.76);
+  box-shadow: 0 12px 36px rgba(17, 27, 71, 0.08);
+}
+
+.directory-search p {
+  margin: 0 0 0.8rem;
+  color: var(--muted);
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.feature-list {
+  display: grid;
+  gap: 0.7rem;
+  margin: 1rem 0 0;
+  padding-left: 1.2rem;
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.partner-list {
+  display: grid;
+  gap: 0.85rem;
+  margin: 1.25rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.partner-list a {
+  display: grid;
+  gap: 0.35rem;
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: #f8fafc;
+  text-decoration: none;
+}
+
+.partner-list strong {
+  color: var(--navy);
+}
+
+.partner-list span {
+  color: var(--muted);
+  line-height: 1.45;
+}
+
 .checkbox {
   display: flex;
   gap: 0.6rem;
   align-items: start;
+}
+
+.privacy-reassurance {
+  margin: -0.25rem 0 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+  font-weight: 800;
+  text-align: center;
+}
+
+.privacy-reassurance a {
+  color: var(--blue);
+}
+
+.legal-content {
+  display: grid;
+  gap: 1rem;
+  line-height: 1.7;
+}
+
+.legal-content h2,
+.legal-content h3 {
+  margin: 1rem 0 0;
+  color: var(--navy);
+}
+
+.legal-content p,
+.legal-content li {
+  margin: 0;
+  color: var(--muted);
+}
+
+.legal-content ol {
+  margin: 0;
+  padding-left: 1.25rem;
 }
 
 .honeypot {
@@ -891,6 +1026,56 @@ nav a {
 }
 
 @media (max-width: 780px) {
+  .container {
+    width: min(100% - 20px, 1180px);
+  }
+
+  .topbar-inner {
+    justify-content: center;
+    gap: 0.35rem 0.8rem;
+    text-align: center;
+  }
+
+  .header-inner {
+    position: relative;
+    flex-wrap: nowrap;
+  }
+
+  .brand span {
+    max-width: 170px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .menu-toggle {
+    display: grid;
+    margin-left: auto;
+  }
+
+  .site-nav {
+    position: absolute;
+    top: calc(100% + 0.65rem);
+    right: 0;
+    left: 0;
+    display: none;
+    padding: 0.9rem;
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    background: rgba(255, 250, 240, 0.98);
+    box-shadow: var(--shadow);
+  }
+
+  .site-nav.open {
+    display: grid;
+  }
+
+  .site-nav a {
+    padding: 0.85rem;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.7);
+  }
+
   .hero,
   .county-hero,
   .split,
@@ -901,20 +1086,55 @@ nav a {
 
   .hero,
   .county-hero {
-    padding: 1.4rem;
+    padding: 1.2rem;
+    gap: 1rem;
+  }
+
+  .hero h1,
+  .county-hero h1,
+  .page-hero h1 {
+    font-size: clamp(2rem, 13vw, 3.4rem);
+  }
+
+  .page-hero p,
+  .hero p,
+  .county-hero p {
+    font-size: 1rem;
+  }
+
+  .actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .actions .button,
+  .actions a {
+    width: 100%;
   }
 
   .county-tabs {
-    position: static;
+    position: sticky;
+    top: 73px;
+    z-index: 4;
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    padding-bottom: 0.5rem;
+    scrollbar-width: thin;
+  }
+
+  .county-tabs a {
+    flex: 0 0 auto;
   }
 
   .feed-grid,
   .feed-item,
   .candidate-filters,
+  .directory-search,
   .candidate-details div,
   .sponsor-card-leaderboard,
   .sponsor-card-inline,
-  .sponsor-card-compact {
+  .sponsor-card-compact,
+  .sponsor-slot-county-news-inline {
     grid-template-columns: 1fr;
   }
 
@@ -926,6 +1146,15 @@ nav a {
   .sponsor-card-inline picture,
   .sponsor-card-compact picture {
     min-height: 0;
+  }
+
+  .directory-search p {
+    margin: 0;
+    white-space: normal;
+  }
+
+  .footer {
+    margin-top: 2.5rem;
   }
 
   .candidate-profile-header,

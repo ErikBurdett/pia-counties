@@ -30,6 +30,15 @@ Contact and event submission forms use EmailJS. Set:
 
 The EmailJS template receives `title`, `name`, `email`, `reply_to`, `to_email`, `county_name`, `county_slug`, `state_name`, `state_slug`, `message`, `page_url`, and `submitted_at`.
 
+## Analytics
+
+Google Tag Manager is loaded in production builds with container `GTM-KDNSLKZ7`. SPA page views are pushed to `dataLayer` on route changes, and sponsor click/impression events are pushed as custom events.
+
+Optional environment variables:
+
+- `VITE_GTM_ID` overrides the default GTM container ID.
+- `VITE_GTM_ENABLE_LOCAL=true` enables GTM during local development.
+
 ## Feeds
 
 County news widgets fetch Google News RSS on demand from the browser through public RSS/CORS providers. This keeps Amplify builds fast because the app only loads feeds for the county page a visitor opens instead of generating nationwide feed files during deployment.
