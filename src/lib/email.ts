@@ -30,6 +30,15 @@ function buildMessage(title: string, county: CountySite, values: Record<string, 
   return [`Submission type: ${title}`, `County: ${county.displayName}, ${county.state.name}`, "", details].join("\n");
 }
 
+function buildSiteMessage(title: string, values: Record<string, FormValue>) {
+  const details = Object.entries(values)
+    .filter(([key]) => key !== "website")
+    .map(([key, value]) => `${key}: ${formatValue(value)}`)
+    .join("\n");
+
+  return [`Submission type: ${title}`, "", details].join("\n");
+}
+
 export async function sendCountyFormEmail(params: {
   county: CountySite;
   title: string;
@@ -54,6 +63,36 @@ export async function sendCountyFormEmail(params: {
       state_name: params.county.state.name,
       state_slug: params.county.state.slug,
       message: buildMessage(params.title, params.county, params.values),
+      page_url: window.location.href,
+      submitted_at: new Date().toISOString(),
+    },
+    { publicKey: config.publicKey },
+  );
+}
+
+export async function sendSiteContactEmail(params: {
+  title: string;
+  replyTo?: string;
+  values: Record<string, FormValue>;
+}) {
+  const config = getEmailConfig();
+  const fromName = String(params.values.name || "Website visitor");
+  const fromEmail = String(params.replyTo || params.values.email || "");
+
+  return emailjs.send(
+    config.serviceId,
+    config.templateId,
+    {
+      title: params.title,
+      name: fromName,
+      email: fromEmail,
+      reply_to: fromEmail,
+      to_email: site.contact.email,
+      county_name: "General inquiry",
+      county_slug: "general",
+      state_name: "General",
+      state_slug: "general",
+      message: buildSiteMessage(params.title, params.values),
       page_url: window.location.href,
       submitted_at: new Date().toISOString(),
     },

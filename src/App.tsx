@@ -7,7 +7,7 @@ import { site } from "./data/site";
 import type { AdRouteType } from "./lib/ads";
 import { initGoogleTagManager, trackPageView } from "./lib/analytics";
 import { fetchCalendarFeed, parseIcsEvents, type CalendarEvent } from "./lib/calendar";
-import { sendCountyFormEmail } from "./lib/email";
+import { sendCountyFormEmail, sendSiteContactEmail } from "./lib/email";
 import { fetchRssFeedItems } from "./lib/rss-client";
 import type { NewsFeedItem } from "./lib/rss-feed";
 
@@ -69,6 +69,7 @@ function App() {
         <Route path="/counties" element={<DirectoryPage />} />
         <Route path="/tv" element={<MainTvPage />} />
       <Route path="/rewards" element={<RewardsPage />} />
+        <Route path="/contact" element={<SiteContactPage />} />
         <Route path="/privacy" element={<PrivacyPage />} />
         <Route path="/terms" element={<TermsPage />} />
         <Route path="/candidates/:candidateId" element={<CandidateProfilePage />} />
@@ -178,6 +179,25 @@ function RewardsPage() {
           <InfoCard title="Join The Community" body="Use the Patriots in Action community to connect, coordinate, and keep local conversations moving." href={site.links.community} cta="Join Now" />
           <InfoCard title="Watch And Share" body="Use PIA TV and candidate profiles to share interviews, updates, and resources with neighbors." href="/tv" cta="Watch PIA TV" />
         </div>
+      </section>
+    </Shell>
+  );
+}
+
+function SiteContactPage() {
+  usePageTitle("Contact");
+
+  return (
+    <Shell route="static">
+      <PageHero eyebrow="Contact" title="Contact Patriots in Action" subtitle="Reach out about candidate profiles, interviews, Patriot Messaging, events, partnerships, or county-level action." />
+      <section className="section split top-align">
+        <div className="panel">
+          <h2>How can we help?</h2>
+          <p><strong>Phone:</strong> <a href={`tel:${site.contact.phoneDial}`}>{site.contact.phone}</a></p>
+          <p><strong>Email:</strong> <a href={`mailto:${site.contact.email}`}>{site.contact.email}</a></p>
+          <p><strong>Community:</strong> <a href={site.links.community}>Join the movement</a></p>
+        </div>
+        <SiteContactForm />
       </section>
     </Shell>
   );
@@ -524,7 +544,13 @@ function CountyCandidates({ county }: { county: CountySite }) {
   );
 }
 
-function CandidateDirectoryNotice({ contactHref = `mailto:${site.contact.email}` }: { contactHref?: string }) {
+function CandidateDirectoryNotice({ contactHref = "/contact" }: { contactHref?: string }) {
+  const button = contactHref.startsWith("/") ? (
+    <Link className="button primary" to={contactHref}>Contact Us</Link>
+  ) : (
+    <a className="button primary" href={contactHref}>Contact Us</a>
+  );
+
   return (
     <section className="candidate-directory-notice">
       <div>
@@ -536,7 +562,7 @@ function CandidateDirectoryNotice({ contactHref = `mailto:${site.contact.email}`
           <a href="https://patriotsforaction.org/">Patriots For Action (PAC)</a>.
         </p>
       </div>
-      <a className="button primary" href={contactHref}>Contact Us</a>
+      {button}
     </section>
   );
 }
@@ -868,6 +894,55 @@ function VimeoFeed({ compact = false }: { compact?: boolean }) {
   );
 }
 
+function SiteContactForm() {
+  const [status, setStatus] = useState<{ message: string; tone: "success" | "error" } | undefined>();
+  const [sending, setSending] = useState(false);
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const formElement = event.currentTarget;
+    const form = new FormData(formElement);
+    if (form.get("website")) return;
+    const values = Object.fromEntries(form.entries()) as Record<string, string>;
+
+    setSending(true);
+    setStatus(undefined);
+    try {
+      await sendSiteContactEmail({
+        title: "General contact form",
+        replyTo: values.email,
+        values,
+      });
+      formElement.reset();
+      setStatus({
+        tone: "success",
+        message: "Your message has been sent. You can expect a reply from a @patriotsinaction.com email.",
+      });
+    } catch {
+      setStatus({
+        tone: "error",
+        message: `Submission failed. Please try again or email us directly at ${site.contact.email}.`,
+      });
+    } finally {
+      setSending(false);
+    }
+  }
+
+  return (
+    <form className="form-card" onSubmit={handleSubmit}>
+      <label className="honeypot">Website <input name="website" tabIndex={-1} autoComplete="off" /></label>
+      <FormInput name="name" label="Name" required />
+      <FormInput name="email" label="Email" type="email" required />
+      <FormInput name="phone" label="Phone" />
+      <FormInput name="subject" label="Subject" required />
+      <FormInput name="message" label="Message" textarea required />
+      {status ? <p className={`status form-status-${status.tone}`}>{status.message}</p> : null}
+      <button className="button primary" type="submit" disabled={sending}>{sending ? "Sending..." : "Send Message"}</button>
+      <p className="privacy-reassurance">Your Information Stays Safe With US. <Link to="/privacy">Read our Privacy Policy</Link>.</p>
+    </form>
+  );
+}
+
 function CountyForm({ county, kind }: { county: CountySite; kind: "contact" | "event" }) {
   const [status, setStatus] = useState<{ message: string; tone: "success" | "error" } | undefined>();
   const [sending, setSending] = useState(false);
@@ -1006,6 +1081,7 @@ function Shell({ county, children, page, route }: { county?: CountySite; childre
             <a href={site.links.community}>Community</a>
             <Link to="/tx/candidates">Candidates</Link>
             <Link to="/tv">PIA TV</Link>
+            <Link to="/contact">Contact</Link>
             <a href={site.links.merch}>Merch</a>
           </nav>
         </div>
