@@ -29,6 +29,9 @@ const candidateProjectDisclaimer =
 const candidateProjectCandidateIds = new Set(["mayes-middleton", "jim-wright", "thomas-smith"]);
 const pacPoliticalAdvertisingDisclaimer =
   "Pol. Adv. paid for by Patriots For Action PAC. Contributions are not tax-deductible. Not authorized by any candidate's committee. Texas Ethics Commission Filer ID 00090846.";
+const heroTitle = "Patriots in Action: A Nationwide & Local Civic Hub";
+const heroDescription =
+  "A nationwide county-by-county civic hub for ultra-local county and statewide Candidates, events, trusted resources, community updates, and practical action. Patriots In Action helps Patriots get informed, get involved, and restore our Republic one county at a time.";
 
 function candidateProfilePath(candidate: Candidate) {
   return `/candidates/${candidate.id}`;
@@ -93,8 +96,8 @@ function HomePage() {
       <section className="hero hero-home">
         <div>
           <p className="eyebrow">Join Our Interactive Community</p>
-          <h1>County-by-county Patriot Networks.</h1>
-          <p>{site.description}</p>
+          <h1>{heroTitle}</h1>
+          <p>{heroDescription}</p>
           <p className="hero-tagline"><em>Patriot inaction is the cause. Patriots in Action is the Cure.</em></p>
           <div className="actions">
             <Link className="button primary" to="/counties">Find Your County</Link>
@@ -108,7 +111,7 @@ function HomePage() {
       <section className="section">
         <div className="section-heading">
           <p className="eyebrow">From Awareness To Action</p>
-          <h2>Built to help Patriots take back local power</h2>
+          <h2>Built to help Patriots restore our Republic one county at a time</h2>
           <p>PatriotsInAction.com gives voters a practical county-by-county hub for finding local information, understanding who represents them, following community updates, and taking the next step where local government decisions are made.</p>
         </div>
         <div className="card-grid three">
@@ -512,8 +515,8 @@ function CountyHome({ county }: { county: CountySite }) {
       <section className="county-hero">
         <div>
           <p className="eyebrow">Presented by {county.displayName} Patriots</p>
-          <h1>{county.heroTitle}</h1>
-          <p>{county.heroSubtitle}</p>
+          <h1>{heroTitle}</h1>
+          <p>{heroDescription}</p>
           <p className="hero-tagline"><em>Patriot inaction is the cause. Patriots in Action is the Cure.</em></p>
           <div className="actions">
             <a className="button primary" href={county.links.rewards}>Join Patriot Rewards</a>
