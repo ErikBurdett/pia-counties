@@ -72,7 +72,7 @@ export const ads: AdCreative[] = [
     title: "Stay connected with Patriot Dispatch",
     body: "Get updates and resources for local action from Patriots in Action.",
     cta: "Get Updates",
-    href: "https://community.patriotsinaction.com/",
+    href: "https://patriotsforaction.org/messaging",
     placement: "inline",
     display: "card",
     image: {
@@ -186,7 +186,7 @@ export const ads: AdCreative[] = [
     title: "Coordinate faster with Patriot Messaging",
     body: "Keep your county network informed with tools built for quick outreach.",
     cta: "Learn More",
-    href: "https://community.patriotsinaction.com/",
+    href: "https://patriotsforaction.org/messaging",
     placement: "inline",
     display: "card",
     image: {

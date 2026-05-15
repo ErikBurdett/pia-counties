@@ -149,6 +149,16 @@ function obituariesSearchUrl(county: UsCounty, state: StateSite) {
   return googleNewsRssUrl(`${county.name} County ${state.name} obituaries OR ${county.name} ${state.abbr} obituary`);
 }
 
+const civicResourceLinks = {
+  precinctLookup: "https://www.nass.org/can-i-vote/find-your-polling-place",
+  votingLocations: "https://www.nass.org/can-i-vote/find-your-polling-place",
+  sampleBallot: "https://www.vote411.org/ballot",
+  registerToVote: "https://www.vote.gov/register",
+  localOfficials: "https://www.usa.gov/local-governments",
+  stateOfficials: "https://open.pluralpolicy.com/find_your_legislator/",
+  federalOfficials: "https://www.usa.gov/elected-officials",
+} as const;
+
 function googleNewsRssUrl(query: string) {
   const url = new URL(site.links.googleNewsRssSearch);
   url.searchParams.set("q", query);
@@ -185,13 +195,13 @@ function createCountySite(county: UsCounty, state: StateSite): CountySite {
       merch: site.links.merch,
       rewards: site.links.rewards,
       partner: site.links.partner,
-      precinctMap: `https://www.google.com/search?q=${encodeURIComponent(`${displayName} ${state.name} precinct map`)}`,
-      votingLocations: `https://www.google.com/search?q=${encodeURIComponent(`${displayName} ${state.name} voting locations`)}`,
-      sampleBallot: `https://www.google.com/search?q=${encodeURIComponent(`${displayName} ${state.name} sample ballot`)}`,
-      registerToVote: site.links.registerToVote,
-      localOfficials: `https://www.google.com/search?q=${encodeURIComponent(`${displayName} ${state.name} elected officials`)}`,
-      stateOfficials: `https://www.google.com/search?q=${encodeURIComponent(`${state.name} state elected officials`)}`,
-      federalOfficials: "https://www.usa.gov/elected-officials",
+      precinctMap: civicResourceLinks.precinctLookup,
+      votingLocations: civicResourceLinks.votingLocations,
+      sampleBallot: civicResourceLinks.sampleBallot,
+      registerToVote: civicResourceLinks.registerToVote,
+      localOfficials: civicResourceLinks.localOfficials,
+      stateOfficials: civicResourceLinks.stateOfficials,
+      federalOfficials: civicResourceLinks.federalOfficials,
       countyParty: `https://www.google.com/search?q=${encodeURIComponent(`${displayName} ${state.name} political parties`)}`,
     },
     customBlocks: {

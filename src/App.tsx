@@ -2,7 +2,7 @@ import { useEffect, useState, type FormEvent, type ReactNode, type UIEvent } fro
 import { Link, Navigate, NavLink, Route, Routes, useLocation, useNavigate, useParams } from "react-router-dom";
 import { AdSlot } from "./components/AdSlot";
 import { getCandidateById, getCandidatesForCounty, getCandidatesForState, type Candidate } from "./data/candidates";
-import { getCountiesForState, getCounty, getStateBySlug, states, type CountyPageKey, type CountySite } from "./data/counties";
+import { counties, getCountiesForState, getCounty, getStateBySlug, states, type CountyPageKey, type CountySite } from "./data/counties";
 import { site } from "./data/site";
 import type { AdRouteType } from "./lib/ads";
 import { initGoogleTagManager, trackPageView } from "./lib/analytics";
@@ -191,7 +191,7 @@ function SiteContactPage() {
 
   return (
     <Shell route="static">
-      <PageHero eyebrow="Contact" title="Contact Patriots in Action" subtitle="Reach out about candidate profiles, interviews, Patriot Messaging, events, partnerships, or county-level action." />
+      <PageHero eyebrow="Contact" title="Contact Patriots in Action" subtitle="Reach out about candidate profiles, interviews, voter outreach, events, partnerships, or county-level action." />
       <section className="section split top-align">
         <div className="panel">
           <h2>How can we help?</h2>
@@ -206,38 +206,90 @@ function SiteContactPage() {
 }
 
 function DirectoryPage() {
-  const [stateSearch, setStateSearch] = useState("");
-  const stateQuery = stateSearch.trim().toLowerCase();
-  const visibleStates = states.filter((state) =>
-    [state.name, state.abbr, state.slug].some((value) => value.toLowerCase().includes(stateQuery)),
+  const [directorySearch, setDirectorySearch] = useState("");
+  const [selectedStateSlug, setSelectedStateSlug] = useState("all");
+  const query = directorySearch.trim().toLowerCase();
+  const filteredCounties = counties.filter((county) =>
+    (selectedStateSlug === "all" || county.state.slug === selectedStateSlug) &&
+    [
+      county.displayName,
+      county.name,
+      county.slug,
+      county.primaryCity,
+      county.fips,
+      county.state.name,
+      county.state.abbr,
+      county.state.slug,
+    ].some((value) => value?.toLowerCase().includes(query)),
   );
+  const visibleStates = states.filter((state) =>
+    selectedStateSlug === "all" &&
+    !query &&
+    [state.name, state.abbr, state.slug].some((value) => value.toLowerCase().includes(query)),
+  );
+  const selectedState = selectedStateSlug === "all" ? undefined : getStateBySlug(selectedStateSlug);
 
   usePageTitle("Find Your County");
 
   return (
     <Shell route="directory">
-      <PageHero eyebrow="Counties" title="Find your county Patriot Network" subtitle="Choose a state to open local county pages for civic information, calendars, news, TV, partners, and forms." />
-      <section className="directory-search" aria-label="Search states">
+      <PageHero eyebrow="Counties" title="Find your county Patriot Network" subtitle="Search nationwide by state, county, city, or FIPS to open local county pages for civic information, calendars, news, TV, partners, and forms." />
+      <CountyDirectoryNotice />
+      <section className="directory-search directory-search-wide" aria-label="Search states and counties">
         <label className="field">
-          <span>Search states</span>
+          <span>Search states and counties</span>
           <input
-            value={stateSearch}
-            onChange={(event) => setStateSearch(event.target.value)}
-            placeholder="Search by state name or abbreviation..."
+            value={directorySearch}
+            onChange={(event) => setDirectorySearch(event.target.value)}
+            placeholder="Search Texas, TX, Potter, Amarillo, FIPS..."
             type="search"
           />
         </label>
-        <p>{visibleStates.length} of {states.length} states shown</p>
+        <label className="field">
+          <span>Filter by state</span>
+          <select value={selectedStateSlug} onChange={(event) => setSelectedStateSlug(event.target.value)}>
+            <option value="all">All states</option>
+            {states.map((state) => (
+              <option key={state.abbr} value={state.slug}>{state.name}</option>
+            ))}
+          </select>
+        </label>
+        <p>{filteredCounties.length} of {counties.length} counties shown</p>
       </section>
-      <div className="directory-grid">
-        {visibleStates.map((state) => (
-          <Link key={state.abbr} className="directory-card" to={statePath(state)}>
-            <strong>{state.name}</strong>
-            <span>{getCountiesForState(state.slug).length} counties</span>
-          </Link>
-        ))}
-      </div>
-      {!visibleStates.length ? <p className="status">No states match your search.</p> : null}
+      {!query && !selectedState ? (
+        <>
+          <div className="section-heading compact-heading">
+            <p className="eyebrow">Browse by State</p>
+            <h2>Choose a state or search directly for a county</h2>
+          </div>
+          <div className="directory-grid">
+            {visibleStates.map((state) => (
+              <Link key={state.abbr} className="directory-card" to={statePath(state)}>
+                <strong>{state.name}</strong>
+                <span>{getCountiesForState(state.slug).length} counties</span>
+              </Link>
+            ))}
+          </div>
+        </>
+      ) : null}
+      {query || selectedState ? (
+        <>
+          <div className="section-heading compact-heading">
+            <p className="eyebrow">County Results</p>
+            <h2>{selectedState ? `${selectedState.name} counties` : "Nationwide county matches"}</h2>
+            <p>{filteredCounties.length ? "Open a county page for local resources, candidates, news, events, and civic information." : "No counties match your search yet."}</p>
+          </div>
+          <div className="directory-grid">
+            {filteredCounties.map((county) => (
+              <Link key={county.fips} className="directory-card" to={countyPath(county)}>
+                <strong>{county.displayName}</strong>
+                <span>{county.state.name}{county.primaryCity ? ` | ${county.primaryCity}` : ""}</span>
+              </Link>
+            ))}
+          </div>
+        </>
+      ) : null}
+      {!filteredCounties.length ? <p className="status">No counties match your search.</p> : null}
     </Shell>
   );
 }
@@ -271,6 +323,7 @@ function StatePage() {
           <p>Each county site can list candidates running locally, including county, city, court, and precinct races.</p>
         </div>
       </section>
+      <CountyDirectoryNotice stateName={state.name} />
       <section className="directory-search" aria-label={`Search ${state.name} counties`}>
         <label className="field">
           <span>Search {state.name} counties</span>
@@ -293,6 +346,25 @@ function StatePage() {
       </div>
       {!visibleCounties.length ? <p className="status">No counties match your search.</p> : null}
     </Shell>
+  );
+}
+
+function CountyDirectoryNotice({ stateName }: { stateName?: string }) {
+  const scope = stateName ? `${stateName} county pages` : "county and state pages";
+
+  return (
+    <section className="candidate-directory-notice">
+      <div>
+        <p className="eyebrow">County Information</p>
+        <h2>Help us improve local civic resources</h2>
+        <p>
+          We are working to gather more county-specific data for {scope}. If you are a county official or a civically minded citizen
+          within a county or state and want to help us, please review your county page and submit accurate information through the
+          contact form.
+        </p>
+      </div>
+      <Link className="button primary" to="/contact">Contact Us</Link>
+    </section>
   );
 }
 
@@ -348,7 +420,7 @@ function StateCandidatesPage() {
             <h2>Help these candidates reach Texas voters in Their Run Off Races</h2>
             <p>Support voter education, candidate interviews, and election outreach across Texas through Patriots for Action PAC.</p>
           </div>
-          <CandidateGrid candidates={patriotMessagingCandidates} emptyText="No Patriot Messaging candidates are available yet." />
+          <CandidateGrid candidates={patriotMessagingCandidates} emptyText="No run off race candidates are available yet." />
         </section>
       ) : null}
       <section className="section">
@@ -507,17 +579,26 @@ function CountyElections({ county }: { county: CountySite }) {
       <PageHero eyebrow="Elections & More" title="Important civic information" subtitle="Voting resources and leader lookups for your county, state, and federal districts." />
       <ActionGrid county={county} />
       <section className="section">
+        <div className="section-heading">
+          <p className="eyebrow">Civic References</p>
+          <h2>Founding documents and election offices</h2>
+          <p>Use these references to understand your rights, your state framework, and where official election information is maintained.</p>
+        </div>
         <div className="card-grid three">
           <ResourceCard title="Ten Commandments" href="https://www.archives.gov/milestone-documents" />
           <ResourceCard title="Declaration of Independence" href="https://www.archives.gov/founding-docs/declaration" />
           <ResourceCard title="U.S. Constitution" href="https://www.archives.gov/founding-docs/constitution" />
-          <ResourceCard title={`${county.state.name} Constitution`} href={`https://www.google.com/search?q=${encodeURIComponent(`${county.state.name} constitution`)}`} />
-          <ResourceCard title="County Party" href={county.links.countyParty} />
-          <ResourceCard title="Register to Vote" href={county.links.registerToVote} />
+          <ResourceCard title={`${county.state.name} Constitution`} href={stateConstitutionUrl(county.state.name)} />
+          <ResourceCard title="Election Officials Directory" href="https://www.nass.org/can-i-vote/election-officials-directory" />
+          <ResourceCard title="State Voting Rules" href="https://www.vote411.org/plan-your-vote" />
         </div>
       </section>
     </>
   );
+}
+
+function stateConstitutionUrl(stateName: string) {
+  return `https://ballotpedia.org/${stateName.replace(/\s+/g, "_")}_Constitution`;
 }
 
 function CountyCandidates({ county }: { county: CountySite }) {
@@ -560,7 +641,8 @@ function CandidateDirectoryNotice({ contactHref = "/contact" }: { contactHref?: 
         <h2>Help us build the candidate directory</h2>
         <p>
           We are still gathering data on candidates nationwide down to the county level. If you are a candidate or working with a campaign,
-          reach out to us to get an interview and Patriots In Action Candidate Profile and learn more about Patriot Messaging and{" "}
+          reach out to us to get an interview and Patriots In Action Candidate Profile and learn more about{" "}
+          <a href="https://patriotsforaction.org/messaging">Patriot Messaging</a> and{" "}
           <a href="https://patriotsforaction.org/">Patriots For Action (PAC)</a>.
         </p>
       </div>

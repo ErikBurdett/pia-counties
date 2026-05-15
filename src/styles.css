@@ -972,11 +972,23 @@ nav a {
   box-shadow: 0 12px 36px rgba(17, 27, 71, 0.08);
 }
 
+.directory-search-wide {
+  grid-template-columns: minmax(260px, 1.4fr) minmax(220px, 0.6fr) auto;
+}
+
 .directory-search p {
   margin: 0 0 0.8rem;
   color: var(--muted);
   font-weight: 800;
   white-space: nowrap;
+}
+
+.compact-heading {
+  margin: 2rem 0 1rem;
+}
+
+.compact-heading h2 {
+  margin-bottom: 0.4rem;
 }
 
 .feature-list {
