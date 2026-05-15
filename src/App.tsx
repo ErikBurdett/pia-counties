@@ -100,7 +100,7 @@ function HomePage() {
             <Link className="button primary" to="/counties">Find Your County</Link>
             <Link className="button red" to="/tx/candidates">Explore Your Candidates</Link>
             <a className="button" href={site.links.community}>Join Our Community</a>
-            <a className="button red" href={site.links.merch}>Shop Merchandise</a>
+            <a className="button red" href={site.links.merch} target="_blank" rel="noreferrer">Shop Merchandise</a>
           </div>
         </div>
         <img src={site.brand.patriot} alt="Patriots in Action patriot mark" />
@@ -708,7 +708,7 @@ function CountyPartners({ county }: { county: CountySite }) {
               </a>
             </li>
             <li>
-              <a href={county.links.merch}>
+              <a href={county.links.merch} target="_blank" rel="noreferrer">
                 <strong>Merch Store</strong>
                 <span>Shop patriotic merchandise and gear from the Patriots in Action merch store.</span>
               </a>
@@ -1187,7 +1187,7 @@ function Shell({ county, children, page, route }: { county?: CountySite; childre
             <Link to="/tx/candidates">Candidates</Link>
             <Link to="/tv">PIA TV</Link>
             <Link to="/contact">Contact</Link>
-            <a href={site.links.merch}>Merch</a>
+            <a href={site.links.merch} target="_blank" rel="noreferrer">Merch</a>
           </nav>
         </div>
       </header>
@@ -1217,7 +1217,7 @@ function Footer() {
           <Link to="/counties">County Directory</Link>
           <Link to="/rewards">Patriot Rewards</Link>
           <a href={site.links.community}>Join Our Interactive Community</a>
-          <a href={site.links.merch}>Merch Store</a>
+          <a href={site.links.merch} target="_blank" rel="noreferrer">Merch Store</a>
         </div>
         <div>
           <h3>Contact</h3>
