@@ -45,6 +45,14 @@ function countyPath(county: CountySite) {
   return `${statePath(county.state)}/${county.slug}`;
 }
 
+function StateFlag({ state, size = "sm" }: { state: { name: string; abbr: string }; size?: "sm" | "md" | "lg" }) {
+  return (
+    <span className={`state-flag state-flag-${size}`} aria-hidden="true">
+      <img src={`/state-flags/${state.abbr.toLowerCase()}.svg`} alt="" loading="lazy" />
+    </span>
+  );
+}
+
 function usePageTitle(title: string) {
   useEffect(() => {
     document.title = `${title} | ${site.name}`;
@@ -268,8 +276,11 @@ function DirectoryPage() {
           <div className="directory-grid">
             {visibleStates.map((state) => (
               <Link key={state.abbr} className="directory-card" to={statePath(state)}>
-                <strong>{state.name}</strong>
-                <span>{getCountiesForState(state.slug).length} counties</span>
+                <StateFlag state={state} />
+                <span className="directory-card-copy">
+                  <strong>{state.name}</strong>
+                  <span>{getCountiesForState(state.slug).length} counties</span>
+                </span>
               </Link>
             ))}
           </div>
@@ -285,8 +296,11 @@ function DirectoryPage() {
           <div className="directory-grid">
             {filteredCounties.map((county) => (
               <Link key={county.fips} className="directory-card" to={countyPath(county)}>
-                <strong>{county.displayName}</strong>
-                <span>{county.state.name}{county.primaryCity ? ` | ${county.primaryCity}` : ""}</span>
+                <StateFlag state={county.state} />
+                <span className="directory-card-copy">
+                  <strong>{county.displayName}</strong>
+                  <span>{county.state.name}{county.primaryCity ? ` | ${county.primaryCity}` : ""}</span>
+                </span>
               </Link>
             ))}
           </div>
@@ -342,8 +356,11 @@ function StatePage() {
       <div className="directory-grid">
         {visibleCounties.map((county) => (
           <Link key={county.fips} className="directory-card" to={countyPath(county)}>
-            <strong>{county.displayName}</strong>
-            <span>{county.primaryCity || state.name}</span>
+            <StateFlag state={county.state} />
+            <span className="directory-card-copy">
+              <strong>{county.displayName}</strong>
+              <span>{county.primaryCity || state.name}</span>
+            </span>
           </Link>
         ))}
       </div>
@@ -514,7 +531,10 @@ function CountyHome({ county }: { county: CountySite }) {
     <>
       <section className="county-hero">
         <div>
-          <p className="eyebrow">Presented by {county.displayName} Patriots</p>
+          <div className="county-hero-flag">
+            <StateFlag state={county.state} size="md" />
+            <p className="eyebrow">Presented by {county.displayName} Patriots</p>
+          </div>
           <h1>{heroTitle}</h1>
           <p>{heroDescription}</p>
           <p className="hero-tagline"><em>Patriot inaction is the cause. Patriots in Action is the Cure.</em></p>

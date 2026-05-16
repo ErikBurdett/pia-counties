@@ -172,6 +172,43 @@ nav a {
   font-weight: 800;
 }
 
+.county-hero-flag {
+  display: flex;
+  gap: 0.8rem;
+  align-items: center;
+  margin-bottom: 0.65rem;
+}
+
+.county-hero-flag .eyebrow {
+  margin: 0;
+}
+
+.state-flag {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: white;
+  box-shadow: 0 6px 16px rgba(17, 27, 71, 0.08);
+}
+
+.state-flag img {
+  display: block;
+  width: 54px;
+  aspect-ratio: 3 / 2;
+  object-fit: cover;
+}
+
+.state-flag-md img {
+  width: 76px;
+}
+
+.state-flag-lg img {
+  width: 120px;
+}
+
 .eyebrow {
   margin: 0 0 0.5rem;
   color: var(--red);
@@ -723,6 +760,25 @@ nav a {
   padding: 1rem;
   text-decoration: none;
   transition: transform 160ms ease, border-color 160ms ease;
+}
+
+.directory-card {
+  align-items: flex-start;
+  gap: 0.85rem;
+  justify-content: flex-start;
+}
+
+.directory-card-copy {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.directory-card-copy span {
+  display: block;
+}
+
+.directory-card .state-flag {
+  min-height: 38px;
 }
 
 .directory-card:hover,
