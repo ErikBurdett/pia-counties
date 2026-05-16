@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "generate:seo": "tsx scripts/generate-seo.ts",
+    "build": "npm run generate:seo && tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview"
   },
@@ -27,6 +28,7 @@
     "eslint-plugin-react-hooks": "latest",
     "eslint-plugin-react-refresh": "latest",
     "globals": "latest",
+    "tsx": "^4.22.0",
     "typescript": "latest",
     "typescript-eslint": "latest",
     "vite": "latest"

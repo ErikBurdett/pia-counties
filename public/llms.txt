@@ -1,0 +1,16 @@
+# Patriots in Action
+
+A nationwide county-by-county civic network for local events, trusted resources, community updates, and practical action.
+
+Patriots in Action is a nationwide and local civic hub with county pages for voter resources, elected official lookups, candidate profiles, local news, events, community updates, Patriots in Action TV, and practical civic action.
+
+Important URLs:
+- Home: https://patriotsinaction.com/
+- County finder: https://patriotsinaction.com/counties
+- Texas candidates: https://patriotsinaction.com/tx/candidates
+- PIA TV: https://patriotsinaction.com/tv
+- Contact: https://patriotsinaction.com/contact
+- Privacy: https://patriotsinaction.com/privacy
+- Terms: https://patriotsinaction.com/terms
+
+County URLs use state abbreviations, for example https://patriotsinaction.com/tx/potter.

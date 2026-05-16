@@ -59,6 +59,267 @@ function usePageTitle(title: string) {
   }, [title]);
 }
 
+type SeoData = {
+  title: string;
+  description: string;
+  canonicalPath: string;
+  type?: "website" | "article" | "profile";
+  structuredData?: Record<string, unknown>[];
+};
+
+function SeoTracker() {
+  const location = useLocation();
+
+  useEffect(() => {
+    applySeoData(seoDataForPath(location.pathname));
+  }, [location.pathname]);
+
+  return null;
+}
+
+function seoTitle(title: string) {
+  return `${title} | ${site.name}`;
+}
+
+function absoluteUrl(pathname: string) {
+  return new URL(pathname, site.url).toString();
+}
+
+function applySeoData(data: SeoData) {
+  const title = seoTitle(data.title);
+  const canonicalUrl = absoluteUrl(data.canonicalPath);
+
+  document.title = title;
+  setMeta("description", data.description);
+  setMeta("robots", "index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1");
+  setMeta("og:site_name", site.name, "property");
+  setMeta("og:type", data.type || "website", "property");
+  setMeta("og:title", title, "property");
+  setMeta("og:description", data.description, "property");
+  setMeta("og:url", canonicalUrl, "property");
+  setMeta("og:image", absoluteUrl(site.brand.icon), "property");
+  setMeta("twitter:card", "summary_large_image");
+  setMeta("twitter:title", title);
+  setMeta("twitter:description", data.description);
+  setLink("canonical", canonicalUrl);
+  setStructuredData(data.structuredData || defaultStructuredData(data, canonicalUrl));
+}
+
+function setMeta(name: string, content: string, attr: "name" | "property" = "name") {
+  let element = document.head.querySelector<HTMLMetaElement>(`meta[${attr}="${name}"]`);
+  if (!element) {
+    element = document.createElement("meta");
+    element.setAttribute(attr, name);
+    document.head.appendChild(element);
+  }
+  element.content = content;
+}
+
+function setLink(rel: string, href: string) {
+  let element = document.head.querySelector<HTMLLinkElement>(`link[rel="${rel}"]`);
+  if (!element) {
+    element = document.createElement("link");
+    element.rel = rel;
+    document.head.appendChild(element);
+  }
+  element.href = href;
+}
+
+function setStructuredData(items: Record<string, unknown>[]) {
+  document.head.querySelectorAll('script[data-seo-json-ld="true"]').forEach((node) => node.remove());
+  items.forEach((item) => {
+    const script = document.createElement("script");
+    script.type = "application/ld+json";
+    script.dataset.seoJsonLd = "true";
+    script.text = JSON.stringify(item);
+    document.head.appendChild(script);
+  });
+}
+
+function defaultStructuredData(data: SeoData, canonicalUrl: string) {
+  return [
+    {
+      "@context": "https://schema.org",
+      "@type": "WebPage",
+      name: data.title,
+      description: data.description,
+      url: canonicalUrl,
+      isPartOf: {
+        "@type": "WebSite",
+        name: site.name,
+        url: site.url,
+      },
+    },
+  ];
+}
+
+function seoDataForPath(pathname: string): SeoData {
+  if (pathname === "/") {
+    return {
+      title: "Nationwide & Local Civic Hub",
+      description: heroDescription,
+      canonicalPath: "/",
+      structuredData: [
+        {
+          "@context": "https://schema.org",
+          "@type": "WebSite",
+          name: site.name,
+          url: site.url,
+          description: heroDescription,
+          potentialAction: {
+            "@type": "SearchAction",
+            target: `${site.url}/counties?q={search_term_string}`,
+            "query-input": "required name=search_term_string",
+          },
+        },
+        {
+          "@context": "https://schema.org",
+          "@type": "Organization",
+          name: site.name,
+          url: site.url,
+          logo: absoluteUrl(site.brand.icon),
+          contactPoint: {
+            "@type": "ContactPoint",
+            telephone: site.contact.phone,
+            email: site.contact.email,
+            contactType: "customer support",
+          },
+        },
+      ],
+    };
+  }
+
+  if (pathname === "/counties") {
+    return {
+      title: "Find Your County Patriot Network",
+      description: "Search nationwide by state, county, city, or FIPS to find local Patriots in Action county pages with voter resources, candidate profiles, events, news, and civic information.",
+      canonicalPath: "/counties",
+    };
+  }
+
+  if (pathname === "/tv") return { title: "PIA TV", description: "Watch Patriots in Action TV videos, candidate interviews, civic updates, and community stories.", canonicalPath: "/tv" };
+  if (pathname === "/rewards") return { title: "Patriot Rewards", description: "Learn how Patriots Rewards connects local Patriots with community updates, partner resources, events, media, and county action.", canonicalPath: "/rewards" };
+  if (pathname === "/contact") return { title: "Contact Patriots in Action", description: "Contact Patriots in Action about county information, candidate profiles, interviews, events, partnerships, and civic action.", canonicalPath: "/contact" };
+  if (pathname === "/privacy") return { title: "Privacy Policy", description: "Read the Patriots in Action privacy policy covering forms, contact information, SMS consent data, analytics, donations, community links, and merchandise links.", canonicalPath: "/privacy" };
+  if (pathname === "/terms") return { title: "Terms & Conditions", description: "Read the Patriots in Action terms and conditions for website use, mobile communications, donations, payment processing, entity relationships, and user submissions.", canonicalPath: "/terms" };
+
+  const candidateMatch = pathname.match(/^\/candidates\/([^/]+)$/);
+  if (candidateMatch) {
+    const candidate = getCandidateById(candidateMatch[1]);
+    if (candidate) {
+      return {
+        title: `${candidate.name} Candidate Profile`,
+        description: `${candidate.name} is running for ${candidate.office}. View candidate information, interview video, contact details, and Patriots in Action profile resources.`,
+        canonicalPath: candidateProfilePath(candidate),
+        type: "profile",
+        structuredData: [
+          {
+            "@context": "https://schema.org",
+            "@type": "Person",
+            name: candidate.name,
+            url: absoluteUrl(candidateProfilePath(candidate)),
+            image: candidate.image ? absoluteUrl(candidate.image) : undefined,
+            affiliation: candidate.party,
+            jobTitle: `Candidate for ${candidate.office}`,
+          },
+        ],
+      };
+    }
+  }
+
+  const parts = pathname.split("/").filter(Boolean);
+  const state = getStateBySlug(parts[0]);
+  if (state && parts.length === 1) {
+    return {
+      title: `${state.name} County Patriot Networks`,
+      description: `Find ${state.name} county Patriots in Action pages with local voter resources, county news, candidate information, events, partners, and civic action tools.`,
+      canonicalPath: statePath(state),
+    };
+  }
+  if (state && parts.length === 2 && parts[1] === "candidates") {
+    return {
+      title: `${state.name} Candidates`,
+      description: `Browse ${state.name} candidate profiles, county and district races, campaign information, and Patriots in Action interview resources.`,
+      canonicalPath: `${statePath(state)}/candidates`,
+    };
+  }
+  if (state && parts.length >= 2) {
+    const county = getCounty(parts[0], parts[1]);
+    if (county) {
+      const page = (parts[2] as CountyPageKey | undefined) || "home";
+      return countySeoData(county, page);
+    }
+  }
+
+  return {
+    title: "Page Not Found",
+    description: "The Patriots in Action page you requested could not be found. Use the county directory to find local civic resources and county pages.",
+    canonicalPath: pathname,
+  };
+}
+
+function countySeoData(county: CountySite, page: CountyPageKey): SeoData {
+  const basePath = countyPath(county);
+  const canonicalPath = page === "home" ? basePath : `${basePath}/${page}`;
+  const titleByPage: Record<CountyPageKey, string> = {
+    home: `${county.displayName}, ${county.state.name} Patriots`,
+    about: `${county.displayName} Civic Action Hub`,
+    elections: `${county.displayName} Elections & Voter Resources`,
+    candidates: `${county.displayName} Candidates`,
+    news: `${county.displayName} Local News & Events`,
+    events: `${county.displayName} Community Calendar`,
+    tv: `${county.displayName} PIA TV`,
+    partners: `${county.displayName} Partners`,
+    contact: `Contact ${county.displayName} Patriots`,
+    "submit-event": `Submit a ${county.displayName} Event`,
+  };
+  const descriptionByPage: Record<CountyPageKey, string> = {
+    home: `Find ${county.displayName}, ${county.state.name} voter resources, elected officials, candidates, local news, community events, and Patriots in Action updates.`,
+    about: `Learn how Patriots in Action helps ${county.displayName} voters get informed, get involved, and restore our Republic one county at a time.`,
+    elections: `Find ${county.displayName} precinct maps, voting locations, sample ballots, voter registration, elected official lookups, and civic reference resources.`,
+    candidates: `Browse candidate profiles connected to ${county.displayName}, ${county.state.name}, including local, district, county, city, and precinct races.`,
+    news: `Follow ${county.displayName} local news, obituary updates, civic video coverage, community events, and Patriots in Action TV updates.`,
+    events: `View the ${county.displayName} community calendar and submit local civic events for Patriots in Action review.`,
+    tv: `Watch Patriots in Action TV videos and interviews relevant to ${county.displayName} and local civic action.`,
+    partners: `Discover preferred partners, events, merchandise, and community resources connected to ${county.displayName} Patriots.`,
+    contact: `Contact ${county.displayName} Patriots about local resources, events, candidate profiles, civic updates, and community action.`,
+    "submit-event": `Submit a ${county.displayName} community event for review and possible addition to the Patriots in Action calendar.`,
+  };
+
+  return {
+    title: titleByPage[page] || titleByPage.home,
+    description: descriptionByPage[page] || descriptionByPage.home,
+    canonicalPath,
+    structuredData: [
+      {
+        "@context": "https://schema.org",
+        "@type": "WebPage",
+        name: titleByPage[page] || titleByPage.home,
+        description: descriptionByPage[page] || descriptionByPage.home,
+        url: absoluteUrl(canonicalPath),
+        about: {
+          "@type": "AdministrativeArea",
+          name: `${county.displayName}, ${county.state.name}`,
+        },
+        isPartOf: {
+          "@type": "WebSite",
+          name: site.name,
+          url: site.url,
+        },
+      },
+      {
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        itemListElement: [
+          { "@type": "ListItem", position: 1, name: "Home", item: site.url },
+          { "@type": "ListItem", position: 2, name: county.state.name, item: absoluteUrl(statePath(county.state)) },
+          { "@type": "ListItem", position: 3, name: county.displayName, item: absoluteUrl(basePath) },
+        ],
+      },
+    ],
+  };
+}
+
 function AnalyticsTracker() {
   const location = useLocation();
 
@@ -92,6 +353,7 @@ function App() {
         <Route path="/:stateSlug/:countySlug/:pageSlug" element={<CountyRoute />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
+      <SeoTracker />
     </>
   );
 }
