@@ -23,12 +23,6 @@ const countyPages: { key: CountyPageKey; label: string }[] = [
   { key: "contact", label: "Contact" },
 ];
 
-const candidateProjectUrl = "https://secure.anedot.com/patriots-for-action/donate";
-const candidateProjectDisclaimer =
-  "You are leaving Patriots in Action and will be redirected to Patriots For Action PAC's secure Anedot donation page. Contributions are not tax-deductible. Not authorized by any candidate's committee. Texas Ethics Commission Filer ID 00090846.";
-const candidateProjectCandidateIds = new Set(["mayes-middleton", "jim-wright", "thomas-smith"]);
-const pacPoliticalAdvertisingDisclaimer =
-  "Pol. Adv. paid for by Patriots For Action PAC. Contributions are not tax-deductible. Not authorized by any candidate's committee. Texas Ethics Commission Filer ID 00090846.";
 const heroTitle = "Patriots in Action: A Nationwide & Local Civic Hub";
 const heroDescription =
   "A nationwide county-by-county civic hub for ultra-local county and statewide Candidates, events, trusted resources, community updates, and practical action. Patriots In Action helps Patriots get informed, get involved, and restore our Republic one county at a time.";
@@ -668,9 +662,6 @@ function StateCandidatesPage() {
   });
   const statewideCandidates = filteredCandidates.filter((candidate) => candidate.scope === "statewide");
   const localCandidates = filteredCandidates.filter((candidate) => candidate.scope !== "statewide");
-  const patriotMessagingCandidates = filteredCandidates.filter((candidate) => candidateProjectCandidateIds.has(candidate.id));
-  const remainingStatewideCandidates = statewideCandidates.filter((candidate) => !candidateProjectCandidateIds.has(candidate.id));
-  const remainingLocalCandidates = localCandidates.filter((candidate) => !candidateProjectCandidateIds.has(candidate.id));
   const hasJurisdictionFilter = jurisdictionFilter !== "all";
 
   usePageTitle(state ? `${state.name} Candidates` : "Not Found");
@@ -680,7 +671,6 @@ function StateCandidatesPage() {
   return (
     <Shell route="state">
       <PageHero eyebrow="Candidate Directory" title={`${state.name} candidates running for office`} subtitle="Browse statewide, district, county, city, and precinct candidates connected to Patriots in Action." />
-      <CandidateDirectoryNotice />
       <CandidateFilters
         jurisdictions={jurisdictionOptions}
         jurisdiction={jurisdictionFilter}
@@ -695,31 +685,21 @@ function StateCandidatesPage() {
         onSearchChange={setCandidateSearch}
         onSortChange={setCandidateSort}
       />
-      {patriotMessagingCandidates.length && !hasJurisdictionFilter ? (
-        <section className="section">
-          <div className="section-heading">
-            <p className="eyebrow">Run Off Races</p>
-            <h2>Help these candidates reach Texas voters in Their Run Off Races</h2>
-            <p>Support voter education, candidate interviews, and election outreach across Texas through Patriots for Action PAC.</p>
-          </div>
-          <CandidateGrid candidates={patriotMessagingCandidates} emptyText="No run off race candidates are available yet." />
-        </section>
-      ) : null}
       <section className="section">
         <div className="section-heading">
           <p className="eyebrow">Local and District Races</p>
-          <h2>{remainingLocalCandidates.length ? `${remainingLocalCandidates.length} local and district candidates` : "Local candidates coming soon"}</h2>
+          <h2>{localCandidates.length ? `${localCandidates.length} local and district candidates` : "Local candidates coming soon"}</h2>
           <p>{hasJurisdictionFilter ? `Candidates matching ${jurisdictionFilter}. Statewide candidates are shown separately below.` : "County pages show county-specific races when a candidate can be matched to a county."}</p>
         </div>
-        <CandidateGrid candidates={remainingLocalCandidates} emptyText={`No local ${state.name} candidates have been added yet.`} showCounty />
+        <CandidateGrid candidates={localCandidates} emptyText={`No local ${state.name} candidates have been added yet.`} showCounty />
       </section>
       <section className="section">
         <div className="section-heading">
           <p className="eyebrow">Statewide Races</p>
-          <h2>{remainingStatewideCandidates.length ? `${remainingStatewideCandidates.length} statewide candidates` : "Statewide candidates coming soon"}</h2>
+          <h2>{statewideCandidates.length ? `${statewideCandidates.length} statewide candidates` : "Statewide candidates coming soon"}</h2>
           <p>{hasJurisdictionFilter ? `Statewide candidates are included with ${jurisdictionFilter} results because they appear on ballots across ${state.name}.` : "The source directory includes candidate names and offices, with room to add profile pages and campaign links later."}</p>
         </div>
-        <CandidateGrid candidates={remainingStatewideCandidates} emptyText={`No statewide ${state.name} candidates have been added yet.`} />
+        <CandidateGrid candidates={statewideCandidates} emptyText={`No statewide ${state.name} candidates have been added yet.`} />
       </section>
       {allCandidates.length ? <p className="source-note">Candidate data is modeled after the public Patriots in Action candidates directory.</p> : null}
     </Shell>
@@ -892,7 +872,6 @@ function CountyCandidates({ county }: { county: CountySite }) {
   return (
     <>
       <PageHero eyebrow="Candidate Directory" title={`${county.displayName} candidates`} subtitle={`Candidates running for local offices connected to ${county.displayName}, ${county.state.name}.`} />
-      <CandidateDirectoryNotice contactHref={`${countyPath(county)}/contact`} />
       <section className="section">
         <div className="section-heading">
           <p className="eyebrow">Local Ballot Watch</p>
@@ -909,30 +888,6 @@ function CountyCandidates({ county }: { county: CountySite }) {
         </div>
       </section>
     </>
-  );
-}
-
-function CandidateDirectoryNotice({ contactHref = "/contact" }: { contactHref?: string }) {
-  const button = contactHref.startsWith("/") ? (
-    <Link className="button primary" to={contactHref}>Contact Us</Link>
-  ) : (
-    <a className="button primary" href={contactHref}>Contact Us</a>
-  );
-
-  return (
-    <section className="candidate-directory-notice">
-      <div>
-        <p className="eyebrow">Candidate Profiles</p>
-        <h2>Help us build the candidate directory</h2>
-        <p>
-          We are still gathering data on candidates nationwide down to the county level. If you are a candidate or working with a campaign,
-          reach out to us to get an interview and Patriots In Action Candidate Profile and learn more about{" "}
-          <a href="https://patriotsforaction.org/messaging">Patriot Messaging</a> and{" "}
-          <a href="https://patriotsforaction.org/">Patriots For Action (PAC)</a>.
-        </p>
-      </div>
-      {button}
-    </section>
   );
 }
 
@@ -1409,7 +1364,7 @@ function ConsentCheckbox({ extraText }: { extraText?: string }) {
       <span>
         {extraText ? `${extraText} ` : ""}
         By checking this box and providing my mobile number, I consent to receive recurring SMS/MMS messages from Patriots Connect, LLC,
-        DBA Patriots in Action and/or Patriots For Action PAC, including voter education, event, volunteer, donation, and outreach messages.
+        DBA Patriots in Action, including voter education, event, volunteer, donation, and outreach messages.
         Message frequency varies. Message and data rates may apply. Reply STOP to opt out and HELP for help. Consent is not required to make
         a purchase or contribution. I agree to the <Link to="/privacy">Privacy Policy</Link> and{" "}
         <Link to="/terms">Terms & Conditions</Link>.
@@ -1495,7 +1450,6 @@ function Footer() {
           <img src={site.brand.footerLogo} alt={site.name} />
           <p>{site.tagline}</p>
           <p>Patriots Connect, LLC, DBA Patriots in Action, is an independent, privately owned business and is not sponsored by, controlled by, or officially associated with any political party or candidate.</p>
-          <p>{pacPoliticalAdvertisingDisclaimer}</p>
         </div>
         <div>
           <h3>Stay informed</h3>
@@ -1713,12 +1667,6 @@ function CandidateGrid({ candidates, emptyText, showCounty = false }: { candidat
             <Link className="button primary" to={candidateProfilePath(candidate)}>View Profile</Link>
             <ShareCandidateProfileButton candidate={candidate} />
           </div>
-          {candidateProjectCandidateIds.has(candidate.id) ? (
-            <div className="candidate-support">
-              <a className="button red" href={candidateProjectUrl}>Help Get This Candidate&apos;s Message Out to Texas Voters</a>
-              <CandidateProjectDisclaimer />
-            </div>
-          ) : null}
         </article>
       ))}
     </div>
@@ -1727,14 +1675,6 @@ function CandidateGrid({ candidates, emptyText, showCounty = false }: { candidat
 
 function isInteractiveTarget(target: EventTarget | null) {
   return target instanceof Element && Boolean(target.closest("a, button, input, select, textarea, iframe"));
-}
-
-function CandidateProjectDisclaimer() {
-  return (
-    <p>
-      {candidateProjectDisclaimer} <Link to="/terms">Terms</Link> and <Link to="/privacy">Privacy Policy</Link>.
-    </p>
-  );
 }
 
 function CandidateVideoPreview({ candidate }: { candidate: Candidate }) {
@@ -1784,12 +1724,6 @@ function CandidateProfile({ candidate, backPath }: { candidate: Candidate; backP
         <aside className="candidate-profile-sidebar">
           {candidate.image ? <img className="candidate-profile-photo" src={candidate.image} alt={candidate.name} /> : null}
           <CandidateDetails candidate={candidate} showProfileLink />
-          {candidateProjectCandidateIds.has(candidate.id) ? (
-            <div className="candidate-support">
-              <a className="button red" href={candidateProjectUrl}>Help Get This Candidate&apos;s Message Out to Texas Voters</a>
-              <CandidateProjectDisclaimer />
-            </div>
-          ) : null}
         </aside>
       </div>
     </article>
@@ -1903,7 +1837,7 @@ function TermsPage() {
         <p>Unless otherwise indicated in our notice to you, any changes to these Terms will be effective immediately, and your continued use of the Services following our provision of such notice will confirm your acceptance of such changes. If you do not agree to any changes to these Terms, you must stop using the Services.</p>
         <p>If you have any questions regarding these Terms or the Services, please contact us at: <strong>[email protected]</strong></p>
         <h3>Entity Notice</h3>
-        <p>Patriots For Action PAC is a Texas political committee. Patriots Connect, LLC, DBA Patriots in Action provides technology, community, merchandise, or platform services. Donations made through this site or linked donation pages are contributions to Patriots For Action PAC unless expressly stated otherwise.</p>
+        <p>Patriots Connect, LLC, DBA Patriots in Action provides technology, community, merchandise, and platform services. Third-party political, donation, community, and merchandise services may have their own terms and policies.</p>
         <h3>Privacy Policy</h3>
         <p>For information about how we collect, use, and share information about you, please see our Privacy Policy.</p>
         <h3>Mobile Communications</h3>
@@ -1914,11 +1848,9 @@ function TermsPage() {
         <p>By entering your phone number and selecting to opt in, you consent to join a recurring SMS/MMS text messaging program that will provide alerts, donation requests, updates, and other important information. By participating, you agree to the terms & privacy policy for auto-dialed messages from client to the phone number you provide. No consent is required to buy. Msg & data rates may apply. Reply HELP for help or STOP to opt-out at any time. SMS information is not rented, sold, or shared. Privacy Policy and Terms and Conditions.</p>
         <h3>Donations and Payment Processing</h3>
         <p>Donations may be processed by third-party providers, including Anedot or another payment processor we designate. We do not collect raw payment-card details on this site. Refunds, chargebacks, recurring contributions, and payment-processing rules are governed by the processor and applicable law.</p>
-        <p>Donation links for Patriots For Action PAC are PAC contributions, not purchases. Pol. Adv. paid for by Patriots For Action PAC. Contributions are not tax-deductible. Not authorized by any candidate's committee. Texas Ethics Commission Filer ID 00090846.</p>
+        <p>Donation links may direct users to a third-party donation page or payment processor. Donations and payment-processing rules are governed by the processor, the receiving organization, and applicable law.</p>
         <h3>Membership Benefits and Renewals</h3>
-        <p>Membership benefit is provided by Patriots Connect, LLC, DBA Patriots in Action. Contribution is made to Patriots For Action PAC. Any future paid membership renewal is separate from your PAC contribution and requires separate billing authorization.</p>
-        <h3>PAC Contribution Restrictions</h3>
-        <p>By making a PAC contribution, contributors should be prepared to certify that they are a U.S. citizen or lawful permanent resident, that the contribution is made from their own funds, that they are not making the contribution in the name of another person, that they are not a foreign national, and that they understand contributions are not tax-deductible. Additional restrictions may apply under Texas and federal law.</p>
+        <p>Any paid membership renewal is separate from any donation or third-party payment transaction and requires separate billing authorization.</p>
         <h3>Ownership and Limited License</h3>
         <p>The Services, including the text, graphics, images, photographs, videos, illustrations, and other content contained therein, are owned by client or our licensors and are protected under both United States and foreign laws. Except as explicitly stated in these Terms, all rights in and to the Services are reserved by us or our licensors. Subject to your compliance with these Terms, you are hereby granted a limited, nonexclusive, non-transferable, non-sublicensable, revocable license to access and use our Services for your own personal, informational, and non-commercial use. Any use of the Services other than as specifically authorized herein, without our prior written permission, is strictly prohibited and will terminate the license granted herein and violate our intellectual property rights.</p>
         <h3>Trademarks</h3>
@@ -1968,7 +1900,7 @@ function PrivacyPage() {
         <p><strong>PatriotsConnect.com</strong> (“we,” “us,” or “our”) is committed to protecting the privacy of</p>
         <p>visitors and users (“you” or “your”) of our political campaign website. This Privacy Policy outlines our practices regarding the collection, use, and disclosure of personal information through our website. By accessing and using our website, you consent to the terms of this Privacy Policy.</p>
         <h3>Entity Identity:</h3>
-        <p>Patriots Connect, LLC, DBA Patriots in Action operates this website and provides technology, community, merchandise, and platform services. Patriots For Action PAC is a Texas political committee. Donations made through linked PAC donation pages are contributions to Patriots For Action PAC unless expressly stated otherwise.</p>
+        <p>Patriots Connect, LLC, DBA Patriots in Action operates this website and provides technology, community, merchandise, and platform services. Third-party political, donation, community, and merchandise services may have their own privacy policies and terms.</p>
         <h3>1. Information We Collect:</h3>
         <ol>
           <li>Personal Information: We may collect personal information you voluntarily provide to us, such as your name, email address, postal address, phone number, and any other information you submit through our website’s forms.</li>
@@ -1993,7 +1925,7 @@ function PrivacyPage() {
           <li>We may use vendors and service providers as processors to operate forms, analytics, email delivery, hosting, community, merchandise, payment, or other platform services, subject to applicable agreements and law.</li>
         </ol>
         <h3>Donations, Community, and Merchandise:</h3>
-        <p>Donations may be completed on Patriots For Action PAC donation pages and processed by Anedot or another designated payment processor. We do not collect raw payment-card details on this site. Community features may link to the Patriots in Action community platform, and merchandise links may direct you to Patriot Merch or other third-party storefronts. Those third-party services may have their own privacy policies and terms.</p>
+        <p>Donations may be completed on third-party donation pages and processed by Anedot or another designated payment processor. We do not collect raw payment-card details on this site. Separate Patriot Community features may link to the Patriots in Action community platform, and merchandise links may direct you to Patriot Merch or other third-party storefronts. Those third-party services may have their own privacy policies and terms.</p>
         <h3>4. Data Security:</h3>
         <p>We take reasonable measures to protect the security of your personal information and employ industry-standard security technologies to safeguard it. However, no method of transmission over the internet or electronic storage is 100% secure, and we cannot guarantee absolute security.</p>
         <h3>5. Third-Party Services:</h3>
