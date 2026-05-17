@@ -23,6 +23,10 @@ const countyPages: { key: CountyPageKey; label: string }[] = [
   { key: "contact", label: "Contact" },
 ];
 
+const candidateProjectUrl = "https://secure.anedot.com/patriots-for-action/donate";
+const candidateProjectDisclaimer =
+  "You are leaving Patriots in Action and will be redirected to Patriots For Action PAC's secure Anedot donation page. Contributions are not tax-deductible. Not authorized by any candidate's committee. Texas Ethics Commission Filer ID 00090846.";
+const candidateProjectCandidateIds = new Set(["mayes-middleton", "jim-wright", "thomas-smith"]);
 const heroTitle = "Patriots in Action: A Nationwide & Local Civic Hub";
 const heroDescription =
   "A nationwide county-by-county civic hub for ultra-local county and statewide Candidates, events, trusted resources, community updates, and practical action. Patriots In Action helps Patriots get informed, get involved, and restore our Republic one county at a time.";
@@ -662,6 +666,9 @@ function StateCandidatesPage() {
   });
   const statewideCandidates = filteredCandidates.filter((candidate) => candidate.scope === "statewide");
   const localCandidates = filteredCandidates.filter((candidate) => candidate.scope !== "statewide");
+  const runOffCandidates = filteredCandidates.filter((candidate) => candidateProjectCandidateIds.has(candidate.id));
+  const remainingStatewideCandidates = statewideCandidates.filter((candidate) => !candidateProjectCandidateIds.has(candidate.id));
+  const remainingLocalCandidates = localCandidates.filter((candidate) => !candidateProjectCandidateIds.has(candidate.id));
   const hasJurisdictionFilter = jurisdictionFilter !== "all";
 
   usePageTitle(state ? `${state.name} Candidates` : "Not Found");
@@ -685,21 +692,31 @@ function StateCandidatesPage() {
         onSearchChange={setCandidateSearch}
         onSortChange={setCandidateSort}
       />
+      {runOffCandidates.length && !hasJurisdictionFilter ? (
+        <section className="section">
+          <div className="section-heading">
+            <p className="eyebrow">Run Off Races</p>
+            <h2>Help these candidates reach Texas voters in Their Run Off Races</h2>
+            <p>Support voter education, candidate interviews, and election outreach across Texas.</p>
+          </div>
+          <CandidateGrid candidates={runOffCandidates} emptyText="No run off race candidates are available yet." />
+        </section>
+      ) : null}
       <section className="section">
         <div className="section-heading">
           <p className="eyebrow">Local and District Races</p>
-          <h2>{localCandidates.length ? `${localCandidates.length} local and district candidates` : "Local candidates coming soon"}</h2>
+          <h2>{remainingLocalCandidates.length ? `${remainingLocalCandidates.length} local and district candidates` : "Local candidates coming soon"}</h2>
           <p>{hasJurisdictionFilter ? `Candidates matching ${jurisdictionFilter}. Statewide candidates are shown separately below.` : "County pages show county-specific races when a candidate can be matched to a county."}</p>
         </div>
-        <CandidateGrid candidates={localCandidates} emptyText={`No local ${state.name} candidates have been added yet.`} showCounty />
+        <CandidateGrid candidates={remainingLocalCandidates} emptyText={`No local ${state.name} candidates have been added yet.`} showCounty />
       </section>
       <section className="section">
         <div className="section-heading">
           <p className="eyebrow">Statewide Races</p>
-          <h2>{statewideCandidates.length ? `${statewideCandidates.length} statewide candidates` : "Statewide candidates coming soon"}</h2>
+          <h2>{remainingStatewideCandidates.length ? `${remainingStatewideCandidates.length} statewide candidates` : "Statewide candidates coming soon"}</h2>
           <p>{hasJurisdictionFilter ? `Statewide candidates are included with ${jurisdictionFilter} results because they appear on ballots across ${state.name}.` : "The source directory includes candidate names and offices, with room to add profile pages and campaign links later."}</p>
         </div>
-        <CandidateGrid candidates={statewideCandidates} emptyText={`No statewide ${state.name} candidates have been added yet.`} />
+        <CandidateGrid candidates={remainingStatewideCandidates} emptyText={`No statewide ${state.name} candidates have been added yet.`} />
       </section>
       {allCandidates.length ? <p className="source-note">Candidate data is modeled after the public Patriots in Action candidates directory.</p> : null}
     </Shell>
@@ -1667,6 +1684,12 @@ function CandidateGrid({ candidates, emptyText, showCounty = false }: { candidat
             <Link className="button primary" to={candidateProfilePath(candidate)}>View Profile</Link>
             <ShareCandidateProfileButton candidate={candidate} />
           </div>
+          {candidateProjectCandidateIds.has(candidate.id) ? (
+            <div className="candidate-support">
+              <a className="button red" href={candidateProjectUrl}>Help This Candidate Get Their Message Out</a>
+              <CandidateProjectDisclaimer />
+            </div>
+          ) : null}
         </article>
       ))}
     </div>
@@ -1675,6 +1698,14 @@ function CandidateGrid({ candidates, emptyText, showCounty = false }: { candidat
 
 function isInteractiveTarget(target: EventTarget | null) {
   return target instanceof Element && Boolean(target.closest("a, button, input, select, textarea, iframe"));
+}
+
+function CandidateProjectDisclaimer() {
+  return (
+    <p>
+      {candidateProjectDisclaimer} <Link to="/terms">Terms</Link> and <Link to="/privacy">Privacy Policy</Link>.
+    </p>
+  );
 }
 
 function CandidateVideoPreview({ candidate }: { candidate: Candidate }) {
@@ -1724,6 +1755,12 @@ function CandidateProfile({ candidate, backPath }: { candidate: Candidate; backP
         <aside className="candidate-profile-sidebar">
           {candidate.image ? <img className="candidate-profile-photo" src={candidate.image} alt={candidate.name} /> : null}
           <CandidateDetails candidate={candidate} showProfileLink />
+          {candidateProjectCandidateIds.has(candidate.id) ? (
+            <div className="candidate-support">
+              <a className="button red" href={candidateProjectUrl}>Help This Candidate Get Their Message Out</a>
+              <CandidateProjectDisclaimer />
+            </div>
+          ) : null}
         </aside>
       </div>
     </article>
